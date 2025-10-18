@@ -1,0 +1,80 @@
+<div class="history-wrap">
+  <h2>🧾 Receipts (IN + OUT)</h2>
+
+  <div class="filters">
+    <input
+      [(ngModel)]="filters.q"
+      (input)="applyFilters()"
+      placeholder="Search (id, user, party)"
+    />
+    <label>
+      Mode
+      <select [(ngModel)]="filters.mode" (change)="applyFilters()">
+        <option value="">All</option>
+        <option value="OUT">OUT (Sale)</option>
+        <option value="IN">IN (Restock)</option>
+      </select>
+    </label>
+    <button class="btn" (click)="reset()">Reset</button>
+    <button class="btn" (click)="reload()">Reload</button>
+  </div>
+
+  <div *ngIf="loading" class="state">Loading…</div>
+  <div *ngIf="!loading && error" class="state error">{{ error }}</div>
+
+  <div class="table-wrapper" *ngIf="!loading && !error">
+    <table *ngIf="paged.length; else noData">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date</th>
+          <th>Mode</th>
+          <th>Party</th>
+          <th>Cashier</th>
+          <th>Type</th>
+          <th style="text-align: right">Total</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of paged">
+          <td>{{ r.id }}</td>
+          <td>{{ r.date | date : "short" }}</td>
+          <td>
+            <span
+              [ngClass]="{
+                badge: true,
+                out: r.mode === 'OUT',
+                inn: r.mode === 'IN'
+              }"
+            >
+              {{ r.mode }}
+            </span>
+          </td>
+          <td>{{ displayParty(r) }}</td>
+          <td>{{ displayUser(r) }}</td>
+          <td>{{ r.type }}</td>
+          <td style="text-align: right">{{ r.total | number : "1.2-2" }}</td>
+          <td class="actions">
+            <button class="btn" (click)="view(r)">View</button>
+            <button class="btn" (click)="print(r)">Print</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <ng-template #noData>
+      <p class="muted">No receipts found.</p>
+    </ng-template>
+  </div>
+
+  <div *ngIf="totalPages > 1" class="pagination">
+    <button class="btn" (click)="prevPage()" [disabled]="page === 1">
+      &lt;
+    </button>
+    <span>Page {{ page }} of {{ totalPages }}</span>
+    <button class="btn" (click)="nextPage()" [disabled]="page === totalPages">
+      &gt;
+    </button>
+  </div>
+</div>

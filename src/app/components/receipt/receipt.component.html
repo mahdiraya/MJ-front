@@ -1,0 +1,95 @@
+<div class="receipt-page">
+  <div class="receipt-print" #printArea>
+    <div class="ticket" *ngIf="tx; else stateTpl">
+      <header class="header">
+        <div class="brand">
+          <div class="logo">🧾</div>
+          <div class="brand-text">
+            <h2>Store App</h2>
+            <small>Some Address • +961 70 000 000</small>
+          </div>
+        </div>
+        <hr />
+        <div class="meta">
+          <div>
+            <strong>Receipt #</strong> <span>{{ tx.id }}</span>
+          </div>
+          <div>
+            <strong>Date</strong> <span>{{ tx.date | date : "short" }}</span>
+          </div>
+          <div *ngIf="tx.user">
+            <strong>Cashier</strong>
+            <span>{{ tx.user?.username || tx.user?.name || tx.user?.id }}</span>
+          </div>
+          <div *ngIf="tx.customer">
+            <strong>Customer</strong>
+            <span>{{ tx.customer?.name || tx.customer?.id }}</span>
+          </div>
+        </div>
+        <hr />
+      </header>
+
+      <table class="lines">
+        <thead>
+          <tr>
+            <th class="left">Item</th>
+            <th class="center">Qty / m</th>
+            <th class="right">Price</th>
+            <th class="right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let it of tx.transactionItems">
+            <td class="left">
+              {{ it.item?.name || "#" + it.item?.id }}
+              <small *ngIf="it.mode === 'METER' && it.roll?.id">
+                • Roll #{{ it.roll.id }}</small
+              >
+            </td>
+            <td class="center">
+              <ng-container *ngIf="it.mode === 'METER'; else eachQty">
+                {{ it.length_m }} m
+              </ng-container>
+              <ng-template #eachQty>{{ it.quantity }}</ng-template>
+            </td>
+            <td class="right">{{ it.price_each | number : "1.2-2" }}</td>
+            <td class="right">{{ lineTotal(it) | number : "1.2-2" }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <hr />
+
+      <div class="totals">
+        <div>
+          <span>Subtotal</span>
+          <span>{{ total() | number : "1.2-2" }}</span>
+        </div>
+        <div class="grand">
+          <span>Total</span>
+          <span>{{ tx.total ?? total() | number : "1.2-2" }}</span>
+        </div>
+        <div class="small" *ngIf="tx.receipt_type">
+          Type: {{ tx.receipt_type }}
+        </div>
+      </div>
+
+      <footer class="foot">
+        <p>Thank you for your purchase!</p>
+        <p><small>All sales subject to store policy.</small></p>
+      </footer>
+    </div>
+  </div>
+
+  <ng-template #stateTpl>
+    <div class="state no-print" *ngIf="loading">Loading…</div>
+    <div class="state error no-print" *ngIf="!loading && error">
+      {{ error }}
+    </div>
+  </ng-template>
+
+  <div class="actions no-print" *ngIf="tx">
+    <button (click)="print()">Print</button>
+    <button (click)="back()">Back</button>
+  </div>
+</div>

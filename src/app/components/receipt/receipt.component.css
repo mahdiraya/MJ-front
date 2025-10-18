@@ -1,0 +1,147 @@
+:host {
+  display: block;
+}
+
+/* Screen layout (unchanged) */
+.receipt-page {
+  min-height: 100%;
+  display: grid;
+  place-items: start center;
+  padding: 16px;
+  background: #f8fafc;
+}
+
+.ticket {
+  width: 80mm; /* thermal width */
+  background: #fff;
+  color: #111;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  border: 1px dashed #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 10px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.header .brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: #eef2ff;
+}
+
+.brand-text h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.brand-text small {
+  color: #64748b;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+}
+
+.meta strong {
+  font-weight: 700;
+}
+
+.meta div {
+  display: flex;
+  justify-content: space-between;
+}
+
+hr {
+  border: 0;
+  border-top: 1px dashed #cbd5e1;
+  margin: 8px 0;
+}
+
+.lines {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.lines th,
+.lines td {
+  padding: 4px 0;
+}
+
+.left {
+  text-align: left;
+}
+
+.center {
+  text-align: center;
+}
+
+.right {
+  text-align: right;
+}
+
+.totals {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.totals > div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.totals .grand {
+  font-weight: 800;
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 4px;
+}
+
+.foot {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.foot p {
+  margin: 2px 0;
+}
+
+.actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.actions button {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.actions button:hover {
+  background: #f1f5f9;
+}
+
+.state {
+  color: #334155;
+}
+
+.state.error {
+  color: #b91c1c;
+}
+
+/* No @media print here — the print document is self-contained */

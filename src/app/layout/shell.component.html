@@ -1,0 +1,86 @@
+<div class="app-layout" [class.collapsed]="isCollapsed">
+  <nav class="drawer" role="navigation" aria-label="Main">
+    <div class="brand">
+      <div class="brand-left">
+        <span class="logo">🛒</span>
+        <span class="title" *ngIf="!isCollapsed">Store App</span>
+      </div>
+
+      <button
+        class="icon-btn toggle-btn"
+        (click)="toggleDrawer()"
+        [attr.aria-expanded]="!isCollapsed"
+        [attr.aria-label]="isCollapsed ? 'Expand menu' : 'Collapse menu'"
+        title="{{ isCollapsed ? 'Expand' : 'Collapse' }}"
+      >
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="nav-scroll">
+      <ul class="navlist">
+        <li>
+          <a
+            routerLink="/items"
+            routerLinkActive="active"
+            [attr.title]="isCollapsed ? 'Items' : null"
+          >
+            <span class="icon">📦</span>
+            <span class="label">Items</span>
+          </a>
+        </li>
+
+        <li>
+          <a
+            routerLink="/sell"
+            routerLinkActive="active"
+            [attr.title]="isCollapsed ? 'Sell' : null"
+          >
+            <span class="icon">🧾</span>
+            <span class="label">Sell</span>
+          </a>
+        </li>
+
+        <!-- NEW: Receipts History -->
+        <li>
+          <a
+            routerLink="/receipts"
+            routerLinkActive="active"
+            [attr.title]="isCollapsed ? 'Receipts' : null"
+          >
+            <span class="icon">📜</span>
+            <span class="label">Receipts</span>
+          </a>
+        </li>
+
+        <li>
+          <a
+            routerLink="/stock-in"
+            routerLinkActive="active"
+            [attr.title]="isCollapsed ? 'Stock In' : null"
+          >
+            <span class="icon">📥</span>
+            <span class="label">Stock In</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="drawer-footer">
+      <button
+        class="logout-btn"
+        (click)="logout()"
+        [attr.title]="isCollapsed ? 'Logout' : null"
+      >
+        <span class="icon">👋</span>
+        <span class="label">Logout</span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

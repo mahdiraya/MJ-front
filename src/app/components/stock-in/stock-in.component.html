@@ -1,0 +1,249 @@
+<div class="stockin">
+  <h2>📥 Stock In (Goods Receipt)</h2>
+
+  <section class="hdr">
+    <label
+      >Supplier ID
+      <input
+        type="number"
+        [(ngModel)]="supplierId"
+        min="1"
+        placeholder="optional"
+      />
+    </label>
+
+    <label
+      >Date
+      <input type="date" [(ngModel)]="date" />
+    </label>
+
+    <label
+      >Tax
+      <input
+        type="number"
+        [(ngModel)]="tax"
+        step="0.01"
+        min="0"
+        placeholder="0.00"
+      />
+    </label>
+
+    <label style="flex: 1"
+      >Note
+      <input type="text" [(ngModel)]="note" placeholder="optional note" />
+    </label>
+  </section>
+
+  <section class="picker">
+    <div class="filters">
+      <input
+        placeholder="Search items..."
+        [(ngModel)]="q"
+        (input)="applyFilters()"
+      />
+
+      <select [(ngModel)]="category" (change)="applyFilters()">
+        <option value="">All categories</option>
+        <option *ngFor="let c of categories" [ngValue]="c">{{ c }}</option>
+      </select>
+
+      <label>
+        <input
+          type="checkbox"
+          [(ngModel)]="inStockOnly"
+          (change)="applyFilters()"
+        />
+        in stock only
+      </label>
+
+      <span style="flex: 1"></span>
+
+      <button class="primary" type="button" (click)="openNewItem()">
+        + New item
+      </button>
+    </div>
+
+    <div class="grid">
+      <div class="card" *ngFor="let it of filtered">
+        <div class="nm">{{ it.name }}</div>
+        <div class="meta">
+          <span *ngIf="it.sku">#{{ it.sku }}</span>
+          <span>Stock: {{ it.stock }}{{ it.stockUnit || "" }}</span>
+        </div>
+        <div class="act">
+          <button *ngIf="it.stockUnit !== 'm'" (click)="addEach(it)">
+            + EACH
+          </button>
+          <button *ngIf="it.stockUnit === 'm'" (click)="addMeter(it)">
+            + METER
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lines" *ngIf="lines.length">
+    <h3>Receipt Lines</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Mode</th>
+          <th>Qty / Rolls</th>
+          <th>Unit Cost</th>
+          <th style="text-align: right">Line Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let l of lines; let i = index">
+          <td>{{ l.item?.name }}</td>
+          <td>{{ l.mode }}</td>
+
+          <td>
+            <!-- EACH -->
+            <ng-container *ngIf="isEach(l); else meterTpl">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                [ngModel]="getQty(l)"
+                (ngModelChange)="onQtyChange(l, $event)"
+              />
+            </ng-container>
+
+            <!-- METER -->
+            <ng-template #meterTpl>
+              <input
+                type="text"
+                placeholder="e.g. 100, 120.5, 80"
+                [ngModel]="getNewRollInput(l)"
+                (ngModelChange)="onNewRollInput(l, $event)"
+                style="min-width: 240px"
+              />
+              <div class="chips" *ngIf="getNewRolls(l).length > 0">
+                <span class="chip" *ngFor="let r of getNewRolls(l)"
+                  >{{ r }}m</span
+                >
+              </div>
+            </ng-template>
+          </td>
+
+          <td>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              [ngModel]="getUnitCost(l)"
+              (ngModelChange)="onUnitCostChange(l, $event)"
+              [placeholder]="isMeter(l) ? 'per meter' : 'per piece'"
+            />
+          </td>
+
+          <td style="text-align: right">
+            {{ lineTotal(l) | number : "1.2-2" }}
+          </td>
+          <td><button class="danger" (click)="removeLine(i)">✕</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="totals">
+      <div>
+        Subtotal: <b>{{ subtotal() | number : "1.2-2" }}</b>
+      </div>
+      <div>
+        Total (incl. tax): <b>{{ total() | number : "1.2-2" }}</b>
+      </div>
+      <button class="primary" (click)="submit()" [disabled]="submitting">
+        Save
+      </button>
+    </div>
+  </section>
+</div>
+
+<!-- ===== Quick "New Item" modal ===== -->
+<div class="modal-backdrop" *ngIf="newItemOpen" (click)="closeNewItem()"></div>
+
+<div class="modal" *ngIf="newItemOpen" (click)="$event.stopPropagation()">
+  <h3>New Item</h3>
+  <div class="form-grid">
+    <label>
+      Name
+      <input [(ngModel)]="newItemForm.name" placeholder="Required" />
+    </label>
+
+    <label>
+      SKU
+      <input [(ngModel)]="newItemForm.sku" placeholder="Optional" />
+    </label>
+
+    <label>
+      Category
+      <select [(ngModel)]="newItemForm.category">
+        <option value="">(none)</option>
+        <option *ngFor="let c of categories" [ngValue]="c">{{ c }}</option>
+      </select>
+    </label>
+
+    <label>
+      Stock unit
+      <select [(ngModel)]="newItemForm.stockUnit">
+        <option value="EACH">Each (pieces)</option>
+        <option value="METER">Meters (rolls)</option>
+      </select>
+    </label>
+
+    <!-- Only show for meter items -->
+    <label *ngIf="newItemForm.stockUnit === 'METER'">
+      Roll length (m)
+      <input
+        type="number"
+        step="0.001"
+        min="0.001"
+        [(ngModel)]="newItemForm.rollLength"
+        placeholder="e.g. 100"
+      />
+    </label>
+
+    <label>
+      Retail price
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        [(ngModel)]="newItemForm.priceRetail"
+        placeholder="Optional"
+      />
+    </label>
+
+    <label>
+      Wholesale price
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        [(ngModel)]="newItemForm.priceWholesale"
+        placeholder="Optional"
+      />
+    </label>
+
+    <label style="grid-column: 1 / -1">
+      Description
+      <input [(ngModel)]="newItemForm.description" placeholder="Optional" />
+    </label>
+  </div>
+
+  <div class="modal-actions">
+    <button class="btn" (click)="closeNewItem()" [disabled]="newItemSubmitting">
+      Cancel
+    </button>
+    <button
+      class="btn-primary"
+      (click)="createNewItem()"
+      [disabled]="newItemSubmitting"
+    >
+      {{ newItemSubmitting ? "Saving…" : "Save item" }}
+    </button>
+  </div>
+</div>

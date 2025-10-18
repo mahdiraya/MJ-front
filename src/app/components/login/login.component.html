@@ -1,0 +1,68 @@
+<div class="auth-wrap">
+  <div class="card">
+    <div class="brand">
+      <span class="logo">🛒</span>
+      <h2>Store App</h2>
+    </div>
+
+    <h3>Sign in</h3>
+
+    <div *ngIf="error" class="alert">
+      {{ error }}
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="login()" novalidate>
+      <label class="field">
+        <span>Username</span>
+        <input
+          type="text"
+          formControlName="username"
+          autocomplete="username"
+          autofocus
+          [class.invalid]="c.username.touched && c.username.invalid"
+        />
+        <small *ngIf="c.username.touched && c.username.hasError('required')">
+          Username is required
+        </small>
+      </label>
+
+      <label class="field password-field">
+        <span>Password</span>
+        <input
+          [type]="showPassword ? 'text' : 'password'"
+          formControlName="password"
+          autocomplete="current-password"
+          [class.invalid]="c.password.touched && c.password.invalid"
+        />
+        <button
+          type="button"
+          class="toggle"
+          (click)="togglePassword()"
+          [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+        >
+          {{ showPassword ? "Hide" : "Show" }}
+        </button>
+        <small *ngIf="c.password.touched && c.password.hasError('required')">
+          Password is required
+        </small>
+        <small *ngIf="c.password.touched && c.password.hasError('minlength')">
+          At least 4 characters
+        </small>
+      </label>
+
+      <label class="remember">
+        <input type="checkbox" formControlName="remember" />
+        <span>Remember username</span>
+      </label>
+
+      <button
+        class="btn-primary"
+        type="submit"
+        [disabled]="loading || form.invalid"
+      >
+        <span *ngIf="!loading">Login</span>
+        <span *ngIf="loading" class="spinner"></span>
+      </button>
+    </form>
+  </div>
+</div>

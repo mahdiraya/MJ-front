@@ -1,0 +1,121 @@
+.stockin {
+  max-width: 1000px;
+  margin: 30px auto;
+  padding: 20px;
+  background: #f8fafd;
+  border-radius: 14px;
+}
+.hdr {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.hdr label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hdr input {
+  padding: 6px 8px;
+  border: 1px solid #c4d5ef;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.filters input[type="text"] {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #c4d5ef;
+  border-radius: 6px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+.card .nm {
+  font-weight: 600;
+}
+.card .meta {
+  color: #64748b;
+  font-size: 12px;
+  display: flex;
+  gap: 10px;
+}
+.card .act button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  cursor: pointer;
+}
+
+.lines table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+.lines th,
+.lines td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px;
+  text-align: left;
+}
+.lines input {
+  padding: 6px 8px;
+  border: 1px solid #c4d5ef;
+  border-radius: 6px;
+}
+
+.chips {
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.chip {
+  background: #e2e8f0;
+  padding: 3px 6px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.totals {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.primary {
+  background: #218cff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+.danger {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}

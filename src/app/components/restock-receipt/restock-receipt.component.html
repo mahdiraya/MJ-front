@@ -1,0 +1,66 @@
+<div class="receipt" *ngIf="!loading && data; else stateTpl">
+  <header>
+    <div class="title">Goods Receipt (IN)</div>
+    <div class="meta">
+      <div><b>#</b> IN-{{ data.id }}</div>
+      <div><b>Date</b> {{ data.date | date : "medium" }}</div>
+      <div>
+        <b>Supplier</b> {{ data.supplierId ? "#" + data.supplierId : "-" }}
+      </div>
+      <div>
+        <b>Cashier</b> {{ data.user?.name || "#" + data.user?.id || "-" }}
+      </div>
+    </div>
+    <div class="note" *ngIf="data.note"><b>Note:</b> {{ data.note }}</div>
+  </header>
+
+  <table class="lines">
+    <thead>
+      <tr>
+        <th style="width: 46px">#</th>
+        <th>Item</th>
+        <th style="width: 100px">Mode</th>
+        <th style="width: 140px; text-align: right">Qty</th>
+        <th style="width: 140px; text-align: right">Unit Cost</th>
+        <th style="width: 160px; text-align: right">Line Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let l of data.items; let i = index">
+        <td>{{ i + 1 }}</td>
+        <td>
+          <div class="nm">{{ l.item.name }}</div>
+          <div class="sku" *ngIf="l.item.sku">#{{ l.item.sku }}</div>
+        </td>
+        <td>{{ l.mode }}</td>
+        <td style="text-align: right">
+          {{ lineQty(l) | number : (l.mode === "EACH" ? "1.0-0" : "1.3-3") }}
+          <span class="unit">{{ lineUnit(l) }}</span>
+        </td>
+        <td style="text-align: right">{{ l.price_each | number : "1.2-2" }}</td>
+        <td style="text-align: right">{{ l.line_total | number : "1.2-2" }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div>
+      Subtotal: <b>{{ data.subtotal | number : "1.2-2" }}</b>
+    </div>
+    <div>
+      Tax: <b>{{ data.tax | number : "1.2-2" }}</b>
+    </div>
+    <div class="grand">
+      Total: <b>{{ data.total | number : "1.2-2" }}</b>
+    </div>
+  </div>
+
+  <footer>
+    <button onclick="window.print()">Print</button>
+  </footer>
+</div>
+
+<ng-template #stateTpl>
+  <div class="state" *ngIf="loading">Loading…</div>
+  <div class="state error" *ngIf="!loading && error">{{ error }}</div>
+</ng-template>

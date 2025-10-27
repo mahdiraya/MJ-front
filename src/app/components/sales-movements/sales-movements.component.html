@@ -1,0 +1,131 @@
+<div class="movements-page">
+  <header class="header">
+    <div>
+      <h1>Sales Movements</h1>
+      <p class="subtitle">
+        Transaction history with filters for customer, status, date, and cashbox.
+      </p>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" (click)="resetFilters()" [disabled]="loading">
+        Reset
+      </button>
+      <button class="btn primary" type="button" (click)="load()" [disabled]="loading">
+        {{ loading ? "Loading..." : "Apply" }}
+      </button>
+    </div>
+  </header>
+
+  <section class="filters">
+    <label>
+      Start date
+      <input type="date" [(ngModel)]="filters.startDate" />
+    </label>
+    <label>
+      End date
+      <input type="date" [(ngModel)]="filters.endDate" />
+    </label>
+    <label>
+      Customer ID
+      <input
+        type="number"
+        min="1"
+        [(ngModel)]="filters.customerId"
+        placeholder="Any"
+      />
+    </label>
+    <label>
+      Status
+      <select [(ngModel)]="filters.status">
+        <option [ngValue]="undefined">All</option>
+        <option *ngFor="let s of statuses" [ngValue]="s.value">
+          {{ s.label }}
+        </option>
+      </select>
+    </label>
+    <label>
+      Cashbox
+      <select [(ngModel)]="filters.cashboxCode">
+        <option [ngValue]="undefined">All</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+      </select>
+    </label>
+    <label class="search">
+      Search
+      <input
+        type="search"
+        [(ngModel)]="filters.search"
+        placeholder="Customer name, ID…"
+      />
+    </label>
+  </section>
+
+  <section class="state" *ngIf="loading">
+    Loading movements...
+  </section>
+  <section class="state error" *ngIf="!loading && error">
+    {{ error }}
+  </section>
+
+  <section class="table-wrapper" *ngIf="!loading && !error">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Date</th>
+          <th>Customer</th>
+          <th style="text-align: right">Total</th>
+          <th style="text-align: right">Paid</th>
+          <th style="text-align: right">Outstanding</th>
+          <th>Status</th>
+          <th>Cashboxes</th>
+          <th>Cashier</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of rows">
+          <td>#{{ row.id }}</td>
+          <td>{{ row.date ? (row.date | date : "short") : "—" }}</td>
+          <td>
+            {{ row.customerName || (row.customerId ? "#" + row.customerId : "Walk-in") }}
+          </td>
+          <td style="text-align: right">{{ row.total | number : "1.2-2" }}</td>
+          <td style="text-align: right">{{ row.paid | number : "1.2-2" }}</td>
+          <td
+            style="text-align: right"
+            [class.due]="row.outstanding > 0.01"
+          >
+            {{ row.outstanding | number : "1.2-2" }}
+          </td>
+          <td>
+            <span
+              class="badge"
+              [class.paid]="row.status === 'PAID'"
+              [class.partial]="row.status === 'PARTIAL'"
+              [class.unpaid]="row.status === 'UNPAID'"
+            >
+              {{ row.status }}
+            </span>
+          </td>
+          <td>{{ formatCashboxes(row) }}</td>
+          <td>
+            {{
+              row.user
+                ? row.user.name || row.user.username || ("#" + row.user.id)
+                : "—"
+            }}
+          </td>
+          <td>
+            <a class="link" [routerLink]="['/receipt', row.id]">View</a>
+          </td>
+        </tr>
+        <tr *ngIf="!rows.length">
+          <td colspan="10" class="state muted">No transactions found for filters.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</div>

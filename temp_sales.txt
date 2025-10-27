@@ -1,0 +1,63 @@
+private buildSalesChartConfig(): ChartConfiguration<'line'> {
+    type: Chart<'line', number[], string>;
+    data: { labels: string[]; datasets: ChartDataset<'line'>[] };
+    options: ChartOptions<'line'>;
+  } {
+    const labels = this.stats!.sales.daily.map((d) =>
+      this.formatDateLabel(d.date),
+    );
+
+    return {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Sales',
+            data: this.stats!.sales.daily.map((d) => +d.total.toFixed(2)),
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.25)',
+            fill: true,
+            tension: 0.25,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          },
+          {
+            label: 'Restocks',
+            data: this.stats!.restocks.daily.map((d) => +d.total.toFixed(2)),
+            borderColor: '#f97316',
+            backgroundColor: 'rgba(249, 115, 22, 0.25)',
+            fill: true,
+            tension: 0.25,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: (ctx) =>
+                `${ctx.dataset.label}: ${CURRENCY_FORMAT.format(
+                  ctx.parsed.y,
+                )}`,
+            },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (value) => CURRENCY_FORMAT.format(Number(value)),
+            },
+          },
+        },
+      },
+    };
+  }
+
+

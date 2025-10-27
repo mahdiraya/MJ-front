@@ -7,6 +7,8 @@ import {
   CreateTransactionDto,
   TxLine,
   PriceTier,
+  PayMethod,
+  CashboxCode,
 } from '../../services/api.service';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
@@ -45,9 +47,12 @@ export class SellComponent implements OnInit {
   selectedCategory = '';
   search = '';
   inStockOnly = true;
-  amountPaidNow: number | '' = '';
-  cashbox: 'A' | 'B' | 'C' = 'A';
-  payMethod: 'cash' | 'card' | 'transfer' | 'other' = 'cash';
+  paidNow: number | '' = '';
+  cashbox: CashboxCode = 'A';
+  payMethod: PayMethod = 'cash';
+  paymentNote = '';
+  statusOverride: '' | 'PAID' | 'PARTIAL' | 'UNPAID' = '';
+  statusOverrideNote = '';
 
   cart: CartLine[] = [];
   note = '';
@@ -216,7 +221,7 @@ export class SellComponent implements OnInit {
     });
   }
 
-  updateQty(i: number, qty: number) {
+  updateQuantity(i: number, qty: number) {
     const line = this.cart[i];
     if (!line) return;
     if (line.stockUnit === 'm') return; // handled by updateMeters
@@ -291,17 +296,33 @@ export class SellComponent implements OnInit {
       receipt_type: 'simple',
       items,
       note: this.note || undefined,
-      amountPaidNow:
-        this.amountPaidNow !== ''
-          ? +Number(this.amountPaidNow).toFixed(2)
-          : undefined,
-      cashbox: this.amountPaidNow ? this.cashbox : undefined,
-      payMethod: this.amountPaidNow ? this.payMethod : undefined,
     };
+
+    const paidValue =
+      this.paidNow !== '' ? +Number(this.paidNow).toFixed(2) : undefined;
+    if (paidValue && paidValue > 0) {
+      payload.paid = paidValue;
+      payload.cashboxCode = this.cashbox;
+      payload.payMethod = this.payMethod;
+      payload.paymentNote = this.paymentNote || undefined;
+      payload.paymentDate = new Date().toISOString();
+    }
+
+    if (this.statusOverride) {
+      payload.statusOverride = this.statusOverride;
+      payload.statusOverrideNote =
+        this.statusOverrideNote?.trim().length
+          ? this.statusOverrideNote.trim()
+          : undefined;
+    }
 
     this.api.createTransaction(payload).subscribe({
       next: (tx) => {
         this.cart = [];
+        this.paidNow = '';
+        this.paymentNote = '';
+        this.statusOverride = '';
+        this.statusOverrideNote = '';
         this.router.navigate(['/receipt', tx.id]);
       },
       error: (err) => {

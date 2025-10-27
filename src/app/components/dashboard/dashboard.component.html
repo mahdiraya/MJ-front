@@ -1,0 +1,197 @@
+<div class="dashboard">
+  <header class="header">
+    <div class="header-main">
+      <h1>Store Dashboard</h1>
+      <p class="lead">
+        A real-time snapshot of cash movement, sales momentum, and supplier exposure.
+      </p>
+      <p *ngIf="stats" class="subtitle">
+        Updated {{ stats.generatedAt | date : "short" }}
+      </p>
+    </div>
+    <div class="header-actions">
+      <button
+        class="btn btn-ghost"
+        type="button"
+        (click)="load()"
+        [disabled]="loading"
+      >
+        {{ loading ? "Refreshing..." : "Refresh data" }}
+      </button>
+    </div>
+  </header>
+
+  <section class="state" *ngIf="loading">
+    <p>Loading dashboard...</p>
+  </section>
+  <section class="state error" *ngIf="!loading && error">
+    <p>{{ error }}</p>
+  </section>
+
+  <ng-container *ngIf="!loading && stats">
+    <section
+      class="cashbox-overview"
+      *ngIf="stats.cashboxTotals as totals"
+    >
+      <div class="overview-main">
+        <div class="overview-title">
+          <span class="eyebrow">All cashboxes</span>
+          <div class="overview-balance">
+            {{ totals.balance | number : "1.2-2" }}
+          </div>
+        </div>
+        <div
+          class="overview-flow"
+          [ngClass]="{
+            positive: totals.totalIn >= totals.totalOut,
+            negative: totals.totalIn < totals.totalOut
+          }"
+        >
+          <span class="flow-label">Net flow</span>
+          <span class="flow-value">
+            {{ (totals.totalIn - totals.totalOut) | number : "1.2-2" }}
+          </span>
+        </div>
+      </div>
+      <dl class="overview-grid">
+        <div>
+          <dt>Total in</dt>
+          <dd>{{ totals.totalIn | number : "1.2-2" }}</dd>
+        </div>
+        <div>
+          <dt>Total out</dt>
+          <dd>{{ totals.totalOut | number : "1.2-2" }}</dd>
+        </div>
+        <div>
+          <dt>Active cashboxes</dt>
+          <dd>{{ stats.cashboxes.length }}</dd>
+        </div>
+        <div>
+          <dt>Last updated</dt>
+          <dd>{{ stats.generatedAt | date : "shortTime" }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="cards">
+      <article
+        class="card cashbox"
+        *ngFor="let c of stats.cashboxes; trackBy: trackCashbox"
+      >
+        <div class="card-head">
+          <span class="code-pill">{{ c.code }}</span>
+          <span class="label">{{ c.label }}</span>
+        </div>
+        <div class="cashbox-card-balance">
+          <div class="balance">
+            {{ c.balance | number : "1.2-2" }}
+          </div>
+          <span
+            class="net-chip"
+            [ngClass]="{
+              positive: c.totalIn >= c.totalOut,
+              negative: c.totalIn < c.totalOut
+            }"
+          >
+            Net {{ (c.totalIn - c.totalOut) | number : "1.2-2" }}
+          </span>
+        </div>
+        <dl class="card-meta">
+          <div>
+            <dt>Total in</dt>
+            <dd>{{ c.totalIn | number : "1.2-2" }}</dd>
+          </div>
+          <div>
+            <dt>Total out</dt>
+            <dd>{{ c.totalOut | number : "1.2-2" }}</dd>
+          </div>
+          <div>
+            <dt>Last movement</dt>
+            <dd>
+              {{ c.lastMovementAt ? (c.lastMovementAt | date : "short") : "--" }}
+            </dd>
+          </div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="metrics">
+      <article class="metric">
+        <h3>Sales</h3>
+        <div class="value">{{ stats.sales.today | number : "1.2-2" }}</div>
+        <p>Today</p>
+        <div class="sub">
+          7-day total: {{ stats.sales.last7Days | number : "1.2-2" }}
+        </div>
+      </article>
+      <article class="metric">
+        <h3>Restocks</h3>
+        <div class="value">{{ stats.restocks.today | number : "1.2-2" }}</div>
+        <p>Today</p>
+        <div class="sub">
+          7-day total: {{ stats.restocks.last7Days | number : "1.2-2" }}
+        </div>
+      </article>
+      <article class="metric debt">
+        <h3>Supplier Debt</h3>
+        <div class="value">
+          {{ stats.supplierDebt.totalOutstanding | number : "1.2-2" }}
+        </div>
+        <p>Total outstanding</p>
+        <ul class="mini-list">
+          <li
+            *ngFor="
+              let supplier of stats.supplierDebt.suppliers | slice : 0 : 5
+            "
+          >
+            {{ supplierLabel(supplier.supplierId) }} -
+            <b>{{ supplier.outstanding | number : "1.2-2" }}</b>
+          </li>
+          <li *ngIf="!stats.supplierDebt.suppliers.length">
+            No debt recorded.
+          </li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="charts">
+      <article class="chart">
+        <h3>Sales vs Restocks (last 7 days)</h3>
+        <ng-container *ngIf="hasSalesData; else noSalesChart">
+          <div class="chart-canvas">
+            <canvas #salesChartCanvas></canvas>
+          </div>
+        </ng-container>
+      </article>
+      <article class="chart">
+        <h3>Net cash flow</h3>
+        <ng-container *ngIf="hasNetCashData; else noNetCashChart">
+          <div class="chart-canvas">
+            <canvas #netCashChartCanvas></canvas>
+          </div>
+        </ng-container>
+      </article>
+      <article class="chart">
+        <h3>Cashbox balances</h3>
+        <ng-container *ngIf="hasCashboxData; else noCashboxChart">
+          <div class="chart-canvas doughnut">
+            <canvas #cashboxChartCanvas></canvas>
+          </div>
+        </ng-container>
+      </article>
+    </section>
+    <ng-template #noSalesChart>
+      <p class="placeholder">Not enough history to draw this chart yet.</p>
+    </ng-template>
+    <ng-template #noNetCashChart>
+      <p class="placeholder">Net cash data will appear once entries exist.</p>
+    </ng-template>
+    <ng-template #noCashboxChart>
+      <p class="placeholder">Cashbox balances unavailable.</p>
+    </ng-template>
+  </ng-container>
+</div>
+
+
+
+

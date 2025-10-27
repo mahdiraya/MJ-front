@@ -4,10 +4,13 @@ import { FormsModule } from '@angular/forms';
 import {
   ApiService,
   Item,
+  Supplier,
   CreateRestockDto,
   CreateRestockLine,
+  CashboxCode,
+  PayMethod,
 } from '../../services/api.service';
-import { Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 
 type LineUiEach = {
   itemId?: number;
@@ -51,6 +54,7 @@ type NewItemForm = {
 export class StockInComponent implements OnInit {
   items: Item[] = [];
   filtered: Item[] = [];
+  suppliers: Supplier[] = [];
   q = '';
   inStockOnly = false;
   category = '';
@@ -62,10 +66,18 @@ export class StockInComponent implements OnInit {
   ];
 
   // Header
-  supplierId: number | '' = '';
+  supplierInput = '';
+  supplierTouched = false;
+  supplierError = '';
   date = new Date().toISOString().slice(0, 10);
   note = '';
   tax: number | '' = '';
+  paidNow: number | '' = '';
+  cashbox: CashboxCode = 'A';
+  payMethod: PayMethod = 'cash';
+  paymentNote = '';
+  statusOverride: '' | 'PAID' | 'PARTIAL' | 'UNPAID' = '';
+  statusOverrideNote = '';
 
   lines: LineUi[] = [];
   submitting = false;
@@ -74,16 +86,46 @@ export class StockInComponent implements OnInit {
   newItemOpen = false;
   newItemSubmitting = false;
   newItemForm: NewItemForm = this.blankNewItem();
+  private preselectItemId: number | null = null;
 
-  constructor(private api: ApiService, private router: Router) {}
+  constructor(
+    private api: ApiService,
+    private route: ActivatedRoute,
+  ) {}
 
   ngOnInit(): void {
+    const itemParam = this.route.snapshot.queryParamMap.get('itemId');
+    if (itemParam) {
+      const parsed = Number(itemParam);
+      if (!Number.isNaN(parsed) && parsed > 0) {
+        this.preselectItemId = parsed;
+      }
+    }
+
     this.api.getItems().subscribe({
       next: (data) => {
         this.items = data || [];
+        if (this.preselectItemId) {
+          const target = this.items.find(
+            (it) => it.id === this.preselectItemId,
+          );
+          if (target) {
+            this.q = target.name;
+          }
+          this.preselectItemId = null;
+        }
         this.applyFilters();
       },
       error: (e) => console.error(e),
+    });
+
+    this.api.getSuppliers().subscribe({
+      next: (data) => {
+        this.suppliers = (data ?? []).sort((a, b) =>
+          (a.name || '').localeCompare(b.name || ''),
+        );
+      },
+      error: (e) => console.error('Failed to load suppliers', e),
     });
   }
 
@@ -114,9 +156,55 @@ export class StockInComponent implements OnInit {
     });
   }
 
+  onSupplierInput() {
+    if (this.supplierError) {
+      this.validateSupplier();
+    }
+  }
+
+  onSupplierBlur() {
+    this.supplierTouched = true;
+    this.validateSupplier();
+  }
+
+  private validateSupplier(): boolean {
+    const valid = !!this.supplierInput.trim();
+    this.supplierError = valid ? '' : 'Supplier is required.';
+    return valid;
+  }
+
+  private rememberSupplier(supplier: Supplier | null | undefined) {
+    if (!supplier || !supplier.id) return;
+    const existingIndex = this.suppliers.findIndex((s) => s.id === supplier.id);
+    if (existingIndex >= 0) {
+      const next = [...this.suppliers];
+      next[existingIndex] = {
+        ...next[existingIndex],
+        ...supplier,
+      };
+      this.suppliers = next.sort((a, b) =>
+        (a.name || '').localeCompare(b.name || ''),
+      );
+      return;
+    }
+    this.suppliers = [...this.suppliers, supplier].sort((a, b) =>
+      (a.name || '').localeCompare(b.name || ''),
+    );
+  }
+
+  get selectedSupplier() {
+    const name = this.supplierInput.trim().toLowerCase();
+    if (!name) return null;
+    return (
+      this.suppliers.find(
+        (s) => (s.name || '').toLowerCase() === name,
+      ) ?? null
+    );
+  }
+
   addEach(it: Item) {
     if (it.stockUnit === 'm') {
-      alert('This item is metered. Use “Add METER” instead.');
+      alert('This item is metered. Use "Add METER" instead.');
       return;
     }
     this.lines.push({
@@ -129,7 +217,7 @@ export class StockInComponent implements OnInit {
 
   addMeter(it: Item) {
     if (it.stockUnit !== 'm') {
-      alert('This item is not metered. Use “Add EACH” instead.');
+      alert('This item is not metered. Use "Add EACH" instead.');
       return;
     }
     this.lines.push({
@@ -222,6 +310,17 @@ export class StockInComponent implements OnInit {
   submit() {
     if (!this.lines.length) return;
 
+    const supplierName = this.supplierInput.trim();
+    if (!supplierName) {
+      this.supplierTouched = true;
+      this.validateSupplier();
+      alert('Supplier name is required.');
+      return;
+    }
+    const matchingSupplier = this.suppliers.find(
+      (s) => (s.name || '').toLowerCase() === supplierName.toLowerCase(),
+    );
+
     const items: CreateRestockLine[] = this.lines.map((l) => {
       if (this.isEach(l)) {
         return {
@@ -246,19 +345,64 @@ export class StockInComponent implements OnInit {
     });
 
     const payload: CreateRestockDto = {
-      supplier: this.supplierId ? Number(this.supplierId) : undefined,
+      supplier: matchingSupplier?.id,
+      supplierName,
       date: this.date ? new Date(this.date).toISOString() : undefined,
       note: this.note || undefined,
       tax: this.tax !== '' ? +Number(this.tax).toFixed(2) : undefined,
       items,
     };
 
+    const paidValue =
+      this.paidNow !== '' ? +Number(this.paidNow).toFixed(2) : undefined;
+    if (paidValue && paidValue > 0) {
+      payload.paid = paidValue;
+      payload.cashboxCode = this.cashbox;
+      payload.payMethod = this.payMethod;
+      payload.paymentNote = this.paymentNote || undefined;
+      payload.paymentDate = this.date
+        ? new Date(this.date).toISOString()
+        : new Date().toISOString();
+    }
+
+    if (this.statusOverride) {
+      payload.statusOverride = this.statusOverride;
+      payload.statusOverrideNote =
+        this.statusOverrideNote?.trim().length
+          ? this.statusOverrideNote.trim()
+          : undefined;
+    }
+
     this.submitting = true;
     this.api.createRestock(payload).subscribe({
-      next: () => {
+      next: (restock) => {
         this.submitting = false;
         alert('Restock saved.');
+        const createdSupplierId =
+          (restock as any)?.supplierId ??
+          (restock as any)?.supplier_id ??
+          matchingSupplier?.id ??
+          null;
+        const createdSupplierName =
+          (restock as any)?.supplierName ?? supplierName;
+        if (createdSupplierId) {
+          this.rememberSupplier({
+            id: createdSupplierId,
+            name: createdSupplierName,
+            phone: null,
+            email: null,
+            address: null,
+            notes: null,
+          });
+        }
+        this.supplierInput = createdSupplierName;
+        this.supplierTouched = false;
+        this.supplierError = '';
         this.lines = [];
+        this.paidNow = '';
+        this.paymentNote = '';
+        this.statusOverride = '';
+        this.statusOverrideNote = '';
       },
       error: (e) => {
         this.submitting = false;
@@ -336,3 +480,4 @@ export class StockInComponent implements OnInit {
     this.newItemOpen = false;
   }
 }
+

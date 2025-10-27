@@ -69,6 +69,33 @@
           <span>Total</span>
           <span>{{ tx.total ?? total() | number : "1.2-2" }}</span>
         </div>
+        <div>
+          <span>Paid</span>
+          <span>{{ (tx.paid ?? 0) | number : "1.2-2" }}</span>
+        </div>
+        <div>
+          <span>Balance</span>
+          <span>
+            {{
+              ((tx.total ?? total()) - (tx.paid ?? 0)) | number : "1.2-2"
+            }}
+          </span>
+        </div>
+        <div class="status">
+          <span>Status</span>
+          <span [class.manual]="tx.statusManualEnabled">
+            {{
+              (tx.statusCode || tx.status || 'UNPAID')
+                | uppercase
+            }}
+          </span>
+        </div>
+        <div class="small" *ngIf="tx.statusManualEnabled">
+          Manual override: {{ tx.statusManualValue || 'N/A' }}
+          <ng-container *ngIf="tx.statusManualNote">
+            ({{ tx.statusManualNote }})
+          </ng-container>
+        </div>
         <div class="small" *ngIf="tx.receipt_type">
           Type: {{ tx.receipt_type }}
         </div>

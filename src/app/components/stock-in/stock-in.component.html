@@ -1,24 +1,41 @@
 <div class="stockin">
-  <h2>📥 Stock In (Goods Receipt)</h2>
+  <h2>Stock In (Goods Receipt)</h2>
 
   <section class="hdr">
-    <label
-      >Supplier ID
+    <label>
+      Supplier
       <input
-        type="number"
-        [(ngModel)]="supplierId"
-        min="1"
-        placeholder="optional"
+        type="text"
+        [(ngModel)]="supplierInput"
+        (input)="onSupplierInput()"
+        (blur)="onSupplierBlur()"
+        [attr.list]="'supplier-options'"
+        placeholder="Type supplier name"
+        autocomplete="off"
+        [class.invalid]="supplierTouched && supplierError"
+        required
       />
+      <datalist id="supplier-options">
+        <option *ngFor="let supplier of suppliers" [value]="supplier.name"></option>
+      </datalist>
+      <small class="hint error" *ngIf="supplierTouched && supplierError">
+        {{ supplierError }}
+      </small>
+      <small class="hint" *ngIf="!supplierError && selectedSupplier">
+        ID #{{ selectedSupplier.id }}
+        <span *ngIf="selectedSupplier.name">| {{ selectedSupplier.name }}</span>
+        <span *ngIf="selectedSupplier.phone">| {{ selectedSupplier.phone }}</span>
+        <span *ngIf="selectedSupplier.email">| {{ selectedSupplier.email }}</span>
+      </small>
     </label>
 
-    <label
-      >Date
+    <label>
+      Date
       <input type="date" [(ngModel)]="date" />
     </label>
 
-    <label
-      >Tax
+    <label>
+      Tax
       <input
         type="number"
         [(ngModel)]="tax"
@@ -28,8 +45,8 @@
       />
     </label>
 
-    <label style="flex: 1"
-      >Note
+    <label style="flex: 1">
+      Note
       <input type="text" [(ngModel)]="note" placeholder="optional note" />
     </label>
   </section>
@@ -47,7 +64,7 @@
         <option *ngFor="let c of categories" [ngValue]="c">{{ c }}</option>
       </select>
 
-      <label>
+      <label class="filter-checkbox">
         <input
           type="checkbox"
           [(ngModel)]="inStockOnly"
@@ -56,9 +73,9 @@
         in stock only
       </label>
 
-      <span style="flex: 1"></span>
+      <span class="spacer"></span>
 
-      <button class="primary" type="button" (click)="openNewItem()">
+      <button class="btn btn-primary" type="button" (click)="openNewItem()">
         + New item
       </button>
     </div>
@@ -68,13 +85,21 @@
         <div class="nm">{{ it.name }}</div>
         <div class="meta">
           <span *ngIf="it.sku">#{{ it.sku }}</span>
-          <span>Stock: {{ it.stock }}{{ it.stockUnit || "" }}</span>
+          <span>Stock: {{ it.stock }}{{ it.stockUnit || '' }}</span>
         </div>
         <div class="act">
-          <button *ngIf="it.stockUnit !== 'm'" (click)="addEach(it)">
+          <button
+            class="btn btn-outline"
+            *ngIf="it.stockUnit !== 'm'"
+            (click)="addEach(it)"
+          >
             + EACH
           </button>
-          <button *ngIf="it.stockUnit === 'm'" (click)="addMeter(it)">
+          <button
+            class="btn btn-outline"
+            *ngIf="it.stockUnit === 'm'"
+            (click)="addMeter(it)"
+          >
             + METER
           </button>
         </div>
@@ -101,7 +126,6 @@
           <td>{{ l.mode }}</td>
 
           <td>
-            <!-- EACH -->
             <ng-container *ngIf="isEach(l); else meterTpl">
               <input
                 type="number"
@@ -112,7 +136,6 @@
               />
             </ng-container>
 
-            <!-- METER -->
             <ng-template #meterTpl>
               <input
                 type="text"
@@ -122,43 +145,103 @@
                 style="min-width: 240px"
               />
               <div class="chips" *ngIf="getNewRolls(l).length > 0">
-                <span class="chip" *ngFor="let r of getNewRolls(l)"
-                  >{{ r }}m</span
-                >
+                <span class="chip" *ngFor="let r of getNewRolls(l)">
+                  {{ r }}m
+                </span>
               </div>
             </ng-template>
           </td>
 
           <td>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              [ngModel]="getUnitCost(l)"
-              (ngModelChange)="onUnitCostChange(l, $event)"
-              [placeholder]="isMeter(l) ? 'per meter' : 'per piece'"
-            />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                [ngModel]="l.unitCost ?? ''"
+                (ngModelChange)="l.unitCost = $event"
+              />
           </td>
 
           <td style="text-align: right">
-            {{ lineTotal(l) | number : "1.2-2" }}
+            {{ lineTotal(l) | number : '1.2-2' }}
           </td>
-          <td><button class="danger" (click)="removeLine(i)">✕</button></td>
+          <td>
+            <button class="btn btn-danger" (click)="removeLine(i)">Remove</button>
+          </td>
         </tr>
       </tbody>
     </table>
+  </section>
 
-    <div class="totals">
-      <div>
-        Subtotal: <b>{{ subtotal() | number : "1.2-2" }}</b>
-      </div>
-      <div>
-        Total (incl. tax): <b>{{ total() | number : "1.2-2" }}</b>
-      </div>
-      <button class="primary" (click)="submit()" [disabled]="submitting">
-        Save
-      </button>
+  <section class="totals" *ngIf="lines.length">
+    <div class="summary">
+      <div class="grand">Subtotal: {{ subtotal() | number : '1.2-2' }}</div>
+      <div>Tax: {{ (tax || 0) | number : '1.2-2' }}</div>
+      <div>Total: {{ total() | number : '1.2-2' }}</div>
     </div>
+
+    <div class="payment-fields">
+      <label>
+        Paid now
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          [(ngModel)]="paidNow"
+          placeholder="0.00"
+        />
+      </label>
+      <label>
+        Cashbox
+        <select [(ngModel)]="cashbox">
+          <option value="A">Cashbox A</option>
+          <option value="B">Cashbox B</option>
+          <option value="C">Cashbox C</option>
+        </select>
+      </label>
+      <label>
+        Pay method
+        <select [(ngModel)]="payMethod">
+          <option value="cash">Cash</option>
+          <option value="card">Card</option>
+          <option value="transfer">Transfer</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <label class="wide">
+        Payment note
+        <input
+          type="text"
+          [(ngModel)]="paymentNote"
+          placeholder="optional"
+          [disabled]="!paidNow"
+        />
+      </label>
+    </div>
+
+    <div class="status-fields">
+      <label>
+        Status override
+        <select [(ngModel)]="statusOverride">
+          <option value="">Auto</option>
+          <option value="PAID">Marked as Paid</option>
+          <option value="PARTIAL">Marked as Partial</option>
+          <option value="UNPAID">Marked as Unpaid</option>
+        </select>
+      </label>
+      <label class="wide" *ngIf="statusOverride">
+        Override note
+        <input
+          type="text"
+          [(ngModel)]="statusOverrideNote"
+          placeholder="why override?"
+        />
+      </label>
+    </div>
+
+    <button class="btn btn-primary" (click)="submit()" [disabled]="submitting">
+      Save
+    </button>
   </section>
 </div>
 
@@ -194,7 +277,6 @@
       </select>
     </label>
 
-    <!-- Only show for meter items -->
     <label *ngIf="newItemForm.stockUnit === 'METER'">
       Roll length (m)
       <input
@@ -239,11 +321,11 @@
       Cancel
     </button>
     <button
-      class="btn-primary"
+      class="btn btn-primary"
       (click)="createNewItem()"
       [disabled]="newItemSubmitting"
     >
-      {{ newItemSubmitting ? "Saving…" : "Save item" }}
+      {{ newItemSubmitting ? 'Saving...' : 'Save item' }}
     </button>
   </div>
 </div>

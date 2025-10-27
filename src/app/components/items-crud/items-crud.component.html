@@ -1,192 +1,203 @@
-<div class="items-container">
-  <h2>🗂️ Items</h2>
-  <div class="category-filter">
-    <select
-      [(ngModel)]="selectedCategory"
-      (change)="filterItems()"
-      class="category-select"
-    >
-      <option [ngValue]="null" disabled>Choose Category</option>
-      <option *ngFor="let cat of categories" [ngValue]="cat">{{ cat }}</option>
-      <option value="all">All Categories</option>
-    </select>
-  </div>
+<div class="view items-view">
+  <header class="view-header">
+    <div>
+      <h1 class="view-title">Items</h1>
+      <p class="view-subtitle">
+        Maintain your product catalogue, pricing tiers, and roll-based stock in one place.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" type="button" (click)="openAdd()">
+        Add Item
+      </button>
+    </div>
+  </header>
 
-  <!-- Add / Edit form -->
+  <section class="surface-card controls-card">
+    <div class="controls">
+      <label class="form-field slim">
+        <span>Filter by category</span>
+        <select
+          [(ngModel)]="selectedCategory"
+          (change)="filterItems()"
+        >
+          <option [ngValue]="null" disabled>Choose category</option>
+          <option *ngFor="let cat of categories" [ngValue]="cat">{{ cat }}</option>
+          <option value="all">All categories</option>
+        </select>
+      </label>
+
+      <span class="pill" *ngIf="filteredItems.length">
+        {{ filteredItems.length }} item{{ filteredItems.length === 1 ? '' : 's' }}
+      </span>
+    </div>
+  </section>
+
   <div *ngIf="showForm" class="item-form-overlay">
     <form (ngSubmit)="saveItem()" class="item-form">
-      <h3>{{ itemForm.id ? "Edit Item" : "Add Item" }}</h3>
+      <header class="item-form__header">
+        <h3>{{ itemForm.id ? 'Edit Item' : 'Add Item' }}</h3>
+        <button type="button" class="icon-btn" (click)="cancelForm()" aria-label="Close form">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z"
+            />
+          </svg>
+        </button>
+      </header>
 
-      <div class="form-row">
-        <label>Name:</label>
-        <input
-          [(ngModel)]="itemForm.name"
-          name="name"
-          placeholder="Name"
-          required
-          autofocus
-        />
-      </div>
+      <div class="form-grid">
+        <label class="form-field">
+          <span>Name</span>
+          <input [(ngModel)]="itemForm.name" name="name" placeholder="Name" required autofocus />
+        </label>
 
-      <div class="form-row">
-        <label>SKU:</label>
-        <input [(ngModel)]="itemForm.sku" name="sku" placeholder="SKU" />
-      </div>
+        <label class="form-field">
+          <span>SKU</span>
+          <input [(ngModel)]="itemForm.sku" name="sku" placeholder="SKU" />
+        </label>
 
-      <div class="form-row">
-        <label>Category:</label>
-        <select [(ngModel)]="itemForm.category" name="category">
-          <option [ngValue]="undefined">Select Category</option>
-          <option value="internet">Internet</option>
-          <option value="solar">Solar</option>
-          <option value="camera">Camera</option>
-          <option value="satellite">Satellite</option>
-        </select>
-      </div>
+        <label class="form-field">
+          <span>Category</span>
+          <select [(ngModel)]="itemForm.category" name="category">
+            <option [ngValue]="undefined">Select category</option>
+            <option value="internet">Internet</option>
+            <option value="solar">Solar</option>
+            <option value="camera">Camera</option>
+            <option value="satellite">Satellite</option>
+          </select>
+        </label>
 
-      <div class="form-row">
-        <label>Stock Unit:</label>
-        <select [(ngModel)]="itemForm.stockUnit" name="stockUnit">
-          <option [ngValue]="undefined">Each (pieces)</option>
-          <option value="m">Meters (rolls)</option>
-          <option value="cm">Centimeters (converted to m)</option>
-        </select>
-      </div>
+        <label class="form-field">
+          <span>Stock unit</span>
+          <select [(ngModel)]="itemForm.stockUnit" name="stockUnit">
+            <option [ngValue]="undefined">Each (pieces)</option>
+            <option value="m">Meters (rolls)</option>
+            <option value="cm">Centimeters (converted to m)</option>
+          </select>
+        </label>
 
-      <!-- EACH: show stock pieces -->
-      <div class="form-row" *ngIf="itemForm.stockUnit !== 'm'">
-        <label>Stock (pieces):</label>
-        <input
-          [(ngModel)]="itemForm.stock"
-          name="stock"
-          type="number"
-          min="0"
-          step="1"
-          placeholder="Pieces in stock"
-          required
-        />
-      </div>
-
-      <!-- METER -->
-      <ng-container *ngIf="itemForm.stockUnit === 'm'">
-        <!-- CREATE: rolls to create now -->
-        <div class="form-row" *ngIf="!itemForm.id">
-          <label>Number of rolls (create now)</label>
+        <label class="form-field" *ngIf="itemForm.stockUnit !== 'm'">
+          <span>Stock (pieces)</span>
           <input
-            [(ngModel)]="rollCreateCount"
-            name="rollCreateCount"
+            [(ngModel)]="itemForm.stock"
+            name="stock"
             type="number"
             min="0"
             step="1"
-            placeholder="e.g. 3"
+            placeholder="Pieces in stock"
+            required
           />
-        </div>
+        </label>
+      </div>
 
-        <div class="form-row" *ngIf="!itemForm.id">
-          <label>Each roll length (m)</label>
-          <input
-            [(ngModel)]="rollCreateLength"
-            name="rollCreateLength"
-            type="number"
-            min="0.001"
-            step="0.001"
-            placeholder="e.g. 100"
-          />
-        </div>
+      <div class="meter-section" *ngIf="itemForm.stockUnit === 'm'">
+        <ng-container *ngIf="!itemForm.id; else rollEdit">
+          <div class="form-grid">
+            <label class="form-field">
+              <span>Number of rolls (create now)</span>
+              <input
+                [(ngModel)]="rollCreateCount"
+                name="rollCreateCount"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="e.g. 3"
+              />
+            </label>
+            <label class="form-field">
+              <span>Each roll length (m)</span>
+              <input
+                [(ngModel)]="rollCreateLength"
+                name="rollCreateLength"
+                type="number"
+                min="0.001"
+                step="0.001"
+                placeholder="e.g. 100"
+              />
+            </label>
+          </div>
+          <p class="form-hint" *ngIf="rollCreateCount && rollCreateLength">
+            Will create {{ rollCreateCount }} × {{ rollCreateLength }} m =
+            <b>{{ rollCreateCount * rollCreateLength | number : '1.3-3' }}</b> meters in stock.
+          </p>
+        </ng-container>
 
-        <div
-          class="form-hint"
-          *ngIf="!itemForm.id && rollCreateCount && rollCreateLength"
-        >
-          Will create {{ rollCreateCount }} × {{ rollCreateLength }} m =
-          <b>{{ rollCreateCount * rollCreateLength | number : "1.3-3" }}</b>
-          meters in stock.
-        </div>
-
-        <!-- EDIT: add more rolls (ONLY this shows while editing) -->
-        <div class="form-group" *ngIf="itemForm.id">
+        <ng-template #rollEdit>
           <hr />
-          <h4>Add more rolls</h4>
-          <div class="form-row">
-            <label>Number of rolls</label>
-            <input
-              [(ngModel)]="rollAddCount"
-              name="rollAddCount"
-              type="number"
-              min="1"
-              step="1"
-              placeholder="e.g. 2"
-            />
+          <h4>Add additional rolls</h4>
+          <div class="form-grid">
+            <label class="form-field">
+              <span>Number of rolls</span>
+              <input
+                [(ngModel)]="rollAddCount"
+                name="rollAddCount"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="e.g. 2"
+              />
+            </label>
+            <label class="form-field">
+              <span>Each roll length (m)</span>
+              <input
+                [(ngModel)]="rollAddLength"
+                name="rollAddLength"
+                type="number"
+                min="0.001"
+                step="0.001"
+                placeholder="e.g. 80"
+              />
+            </label>
           </div>
-          <div class="form-row">
-            <label>Each roll length (m)</label>
-            <input
-              [(ngModel)]="rollAddLength"
-              name="rollAddLength"
-              type="number"
-              min="0.001"
-              step="0.001"
-              placeholder="e.g. 150"
-            />
-          </div>
-          <div class="form-actions">
-            <button
-              type="button"
-              class="btn"
-              (click)="addExtraRolls()"
-              [disabled]="!(rollAddCount > 0 && rollAddLength > 0)"
-            >
-              + Add rolls
-            </button>
-          </div>
-        </div>
-      </ng-container>
-
-      <!-- PRICES -->
-      <div class="form-row">
-        <label>Retail Price</label>
-        <input
-          [(ngModel)]="itemForm.priceRetail"
-          name="priceRetail"
-          type="number"
-          step="0.01"
-          min="0"
-          placeholder="Retail"
-          required
-        />
+        </ng-template>
       </div>
 
-      <div class="form-row">
-        <label>Wholesale Price</label>
-        <input
-          [(ngModel)]="itemForm.priceWholesale"
-          name="priceWholesale"
-          type="number"
-          step="0.01"
-          min="0"
-          placeholder="Wholesale (optional)"
-        />
+      <div class="form-grid">
+        <label class="form-field">
+          <span>Retail price</span>
+          <input
+            [(ngModel)]="itemForm.priceRetail"
+            name="priceRetail"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="Retail price"
+          />
+        </label>
+
+        <label class="form-field">
+          <span>Wholesale price</span>
+          <input
+            [(ngModel)]="itemForm.priceWholesale"
+            name="priceWholesale"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="Wholesale price"
+          />
+        </label>
       </div>
 
-      <div class="form-row">
-        <label>Description:</label>
+      <label class="form-field">
+        <span>Description</span>
         <input
           [(ngModel)]="itemForm.description"
           name="description"
-          placeholder="Description"
+          placeholder="Optional description"
         />
-      </div>
+      </label>
 
       <div class="form-actions">
-        <button class="btn-primary" type="submit">
-          {{ itemForm.id ? "Update" : "Add" }}
+        <button class="btn btn-primary" type="submit">
+          {{ itemForm.id ? 'Update Item' : 'Create Item' }}
         </button>
         <button class="btn" type="button" (click)="cancelForm()">Cancel</button>
       </div>
     </form>
   </div>
 
-  <div class="table-wrapper">
+  <section class="table-card">
     <table *ngIf="pagedItems.length; else noData">
       <thead>
         <tr>
@@ -199,7 +210,6 @@
           <th class="th-actions">Actions</th>
         </tr>
       </thead>
-
       <tbody>
         <tr *ngFor="let item of pagedItems">
           <td>{{ item.name }}</td>
@@ -210,61 +220,53 @@
             <span *ngIf="item.stockUnit">&nbsp;{{ item.stockUnit }}</span>
           </td>
           <td>
-            <div>
-              Retail: {{ item.priceRetail ?? item.price | number : "1.2-2" }}
-            </div>
+            <div>Retail: {{ item.priceRetail ?? item.price | number : '1.2-2' }}</div>
             <div *ngIf="item.priceWholesale != null">
-              Wholesale: {{ item.priceWholesale | number : "1.2-2" }}
+              Wholesale: {{ item.priceWholesale | number : '1.2-2' }}
             </div>
-            <small *ngIf="item.stockUnit === 'm'">per m</small>
+            <small *ngIf="item.stockUnit === 'm'">per metre</small>
           </td>
           <td>{{ item.description }}</td>
           <td class="actions">
-            <!-- Edit -->
             <button
               class="icon-btn"
               title="Edit"
               aria-label="Edit item"
               (click)="openEdit(item)"
             >
-              <!-- pencil -->
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path
-                  d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                  d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zm18.7-10.2a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0L15.12 5.13l3.75 3.75 2.83-2.83z"
                 />
               </svg>
               <span class="sr-only">Edit</span>
             </button>
 
-            <!-- Photo -->
             <button
               class="icon-btn"
               [class.has-photo]="!!item.photoUrl"
-              title="Photo"
+              title="Manage photo"
               aria-label="Manage photo"
               (click)="openPhotoModal(item)"
             >
-              <!-- image/photo -->
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path
-                  d="M21 19V5a2 2 0 0 0-2-2H5C3.89 3 3 3.9 3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5zM8 8a2 2 0 1 1 .001 4.001A2 2 0 0 1 8 8z"
+                  d="M21 19V7a2 2 0 0 0-2-2h-2.6l-1.2-1.6A1.5 1.5 0 0 0 14 2H10a1.5 1.5 0 0 0-1.2.6L7.6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zm-13-7.5a2 2 0 1 1 2 2 2 2 0 0 1-2-2zm2.5 3.5 2.5 3 2.5-3 3.5 4.5h-14z"
                 />
               </svg>
               <span class="photo-dot" *ngIf="item.photoUrl"></span>
               <span class="sr-only">Photo</span>
             </button>
 
-            <!-- Delete -->
             <button
               class="icon-btn danger"
               title="Delete"
               aria-label="Delete item"
               (click)="deleteItem(item.id)"
             >
-              <!-- trash -->
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path
-                  d="M6 7h12v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7zm3-4h6l1 1h4v2H4V4h4l1-1z"
+                  d="M6 7h12v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7zm3-4h6l1 1h4v2H4V4h4l1-1z"
                 />
               </svg>
               <span class="sr-only">Delete</span>
@@ -275,42 +277,21 @@
     </table>
 
     <ng-template #noData>
-      <p style="text-align: center; margin: 40px 0">No items found.</p>
+      <p class="empty-state">No items found.</p>
     </ng-template>
-  </div>
+  </section>
 
-  <!-- Pagination Controls -->
-  <div *ngIf="totalPages > 1" class="pagination">
-    <button
-      (click)="prevPage()"
-      [disabled]="currentPage === 1"
-      class="icon-btn"
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-      </svg>
-      <span class="sr-only">Previous page</span>
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button class="btn" type="button" (click)="prevPage()" [disabled]="currentPage === 1">
+      Previous
     </button>
     <span>Page {{ currentPage }} of {{ totalPages }}</span>
-    <button
-      (click)="nextPage()"
-      [disabled]="currentPage === totalPages"
-      class="icon-btn"
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="m8.59 16.59 1.41 1.41 6-6-6-6-1.41 1.41L13.17 12z" />
-      </svg>
-      <span class="sr-only">Next page</span>
+    <button class="btn" type="button" (click)="nextPage()" [disabled]="currentPage === totalPages">
+      Next
     </button>
   </div>
-
-  <!-- Floating Add Button -->
-  <button (click)="openAdd()" class="floating-add-btn" title="Add new item">
-    +
-  </button>
 </div>
 
-<!-- Photo Modal -->
 <div
   class="modal-backdrop"
   *ngIf="photoModalOpen"
@@ -338,10 +319,9 @@
         hidden
         (change)="onPhotoFileChange($event)"
       />
-      <!-- folder/file -->
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path
-          d="M10 4H4a2 2 0 0 0-2 2v3h20V8a2 2 0 0 0-2-2h-8l-2-2zM22 10H2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-8z"
+          d="M10 4H4a2 2 0 0 0-2 2v3h20V8a2 2 0 0 0-2-2h-6l-2-2zM22 10H2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-8z"
         />
       </svg>
       <span class="sr-only">Choose file</span>
@@ -354,7 +334,6 @@
       title="Upload"
       aria-label="Upload"
     >
-      <!-- cloud upload -->
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path
           d="M19 18a4 4 0 0 0-3.8-4A5.5 5.5 0 0 0 6 10.5a5.5 5.5 0 0 0 .3 1.8A4 4 0 1 0 5 20h13a3 3 0 0 0 1-5.8zM12 13l-4 4h3v4h2v-4h3l-4-4z"
@@ -370,7 +349,6 @@
       title="Close"
       aria-label="Close"
     >
-      <!-- X -->
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path
           d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.7 2.88 18.3 9.17 12 2.88 5.71 4.29 4.3 10.6 10.6l6.29-6.3z"
@@ -388,7 +366,6 @@
       title="Remove photo"
       aria-label="Remove photo"
     >
-      <!-- trash -->
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path
           d="M6 7h12v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7zm3-4h6l1 1h4v2H4V4h4l1-1z"

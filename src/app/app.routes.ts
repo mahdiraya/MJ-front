@@ -16,6 +16,13 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     children: [
       {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./components/dashboard/dashboard.component').then(
+            (m) => m.DashboardComponent
+          ),
+      },
+      {
         path: 'items',
         loadComponent: () =>
           import('./components/items-crud/items-crud.component').then(
@@ -57,7 +64,42 @@ export const routes: Routes = [
             (m) => m.StockInComponent
           ),
       },
-      { path: '', pathMatch: 'full', redirectTo: 'items' },
+      {
+        path: 'supplier-debt',
+        loadComponent: () =>
+          import('./components/supplier-debt/supplier-debt.component').then(
+            (m) => m.SupplierDebtComponent
+          ),
+      },
+      {
+        path: 'purchase-movements',
+        loadComponent: () =>
+          import(
+            './components/purchase-movements/purchase-movements.component'
+          ).then((m) => m.PurchaseMovementsComponent),
+      },
+      {
+        path: 'sales-movements',
+        loadComponent: () =>
+          import('./components/sales-movements/sales-movements.component').then(
+            (m) => m.SalesMovementsComponent
+          ),
+      },
+      {
+        path: 'low-stock',
+        loadComponent: () =>
+          import('./components/low-stock/low-stock.component').then(
+            (m) => m.LowStockComponent
+          ),
+      },
+      {
+        path: 'cashbox-ledger',
+        loadComponent: () =>
+          import('./components/cashbox-ledger/cashbox-ledger.component').then(
+            (m) => m.CashboxLedgerComponent
+          ),
+      },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },
   { path: '**', redirectTo: '' },

@@ -1,115 +1,133 @@
-<div class="sell-wrap">
-  <h2>🧾 Sell</h2>
-
-  <div class="toolbar">
-    <input
-      [(ngModel)]="search"
-      (input)="applyFilters()"
-      placeholder="Search items by name or SKU..."
-    />
-    <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
-      <option value="">All categories</option>
-      <option *ngFor="let c of categories" [value]="c">
-        {{ c | titlecase }}
-      </option>
-    </select>
-    <label class="stock-only">
-      <input
-        type="checkbox"
-        [(ngModel)]="inStockOnly"
-        (change)="applyFilters()"
-      />
-      In stock only
-    </label>
-
-    <!-- Default tier used only when adding new lines; can be overridden per line -->
-    <div
-      class="tier-toggle"
-      style="margin-left: auto; display: flex; gap: 12px; align-items: center"
-    >
-      <label
-        ><input
-          type="radio"
-          name="tier"
-          [(ngModel)]="defaultTier"
-          value="retail"
-        />
-        Retail (default)</label
-      >
-      <label
-        ><input
-          type="radio"
-          name="tier"
-          [(ngModel)]="defaultTier"
-          value="wholesale"
-        />
-        Wholesale (default)</label
-      >
+<div class="view sell-view">
+  <header class="view-header">
+    <div>
+      <h1 class="view-title">Sell</h1>
+      <p class="view-subtitle">
+        Build a cart, apply wholesale pricing, and record payments on the spot.
+      </p>
     </div>
-  </div>
+    <div class="header-actions">
+      <button class="btn" type="button" (click)="loadItems()">Refresh items</button>
+    </div>
+  </header>
 
-  <div class="content">
-    <div class="catalog">
-      <h3>Items</h3>
-      <div class="items">
-        <div
+  <section class="surface-card controls-card">
+    <div class="controls">
+      <label class="form-field search-field">
+        <span>Search</span>
+        <input
+          [(ngModel)]="search"
+          (input)="applyFilters()"
+          placeholder="Search items by name or SKU..."
+        />
+      </label>
+
+      <label class="form-field">
+        <span>Category</span>
+        <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
+          <option value="">All categories</option>
+          <option *ngFor="let c of categories" [value]="c">{{ c | titlecase }}</option>
+        </select>
+      </label>
+
+      <label class="filter-checkbox">
+        <input
+          type="checkbox"
+          [(ngModel)]="inStockOnly"
+          (change)="applyFilters()"
+        />
+        In stock only
+      </label>
+
+      <div class="tier-toggle">
+        <span class="tier-label">Default price tier</span>
+        <label>
+          <input
+            type="radio"
+            name="tier"
+            [(ngModel)]="defaultTier"
+            value="retail"
+          />
+          Retail
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="tier"
+            [(ngModel)]="defaultTier"
+            value="wholesale"
+          />
+          Wholesale
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <div class="sell-layout">
+    <section class="surface-card catalogue-card">
+      <div class="section-header">
+        <h2>Items</h2>
+        <span class="pill">{{ filteredItems.length }} available</span>
+      </div>
+
+      <div class="items-grid">
+        <button
+          type="button"
           class="item-card"
           *ngFor="let it of filteredItems"
           [class.disabled]="remainingStock(it) === 0"
           (click)="addToCart(it)"
           [title]="remainingStock(it) === 0 ? 'Out of stock' : 'Click to add'"
         >
-          <div class="name">{{ it.name }}</div>
-          <div class="sku" *ngIf="it.sku">SKU: {{ it.sku }}</div>
+          <div class="item-card__head">
+            <div class="name">{{ it.name }}</div>
+            <div class="sku" *ngIf="it.sku">SKU: {{ it.sku }}</div>
+          </div>
           <div class="meta">
-            <span>{{ it.category }}</span>
+            <span class="category">{{ it.category | titlecase }}</span>
             <span class="price">
               {{
-                (defaultTier === "wholesale"
+                (defaultTier === 'wholesale'
                   ? it.priceWholesale ?? it.priceRetail ?? it.price
                   : it.priceRetail ?? it.price ?? it.priceWholesale
-                ) | number : "1.2-2"
+                ) | number : '1.2-2'
               }}
-              <ng-container *ngIf="it.stockUnit === 'm'"
-                >&nbsp;per m</ng-container
-              >
+              <ng-container *ngIf="it.stockUnit === 'm'">/ m</ng-container>
             </span>
           </div>
           <div class="stock" [class.out]="remainingStock(it) === 0">
             Stock: {{ remainingStock(it) }}
-            <ng-container *ngIf="it.stockUnit === 'm'"> m</ng-container>
+            <ng-container *ngIf="it.stockUnit === 'm'">m</ng-container>
           </div>
-        </div>
+        </button>
       </div>
-    </div>
+    </section>
 
-    <div class="cart">
-      <h3>Cart</h3>
-      <table *ngIf="cart.length; else emptyCart">
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th style="width: 170px">Price mode</th>
-            <th style="width: 220px">Qty / Meters</th>
-            <th style="width: 110px">Unit price</th>
-            <th style="width: 120px">Line total</th>
-            <th style="width: 60px"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let line of cart; let i = index">
-            <td>
+    <section class="glass-card cart-card">
+      <div class="section-header">
+        <h2>Cart</h2>
+        <span class="pill" *ngIf="cart.length">{{ cart.length }} line{{ cart.length === 1 ? '' : 's' }}</span>
+      </div>
+
+      <div class="cart-rows" *ngIf="cart.length; else emptyCart">
+        <article class="cart-line" *ngFor="let line of cart; let i = index">
+          <header class="cart-line__head">
+            <div>
               <div class="cart-name">{{ line.name }}</div>
               <div class="cart-sku" *ngIf="line.sku">SKU: {{ line.sku }}</div>
-              <div class="cart-stock">
-                Available:
-                {{ getItemStock(line.itemId) }}
-                <ng-container *ngIf="line.stockUnit === 'm'"> m</ng-container>
-              </div>
-            </td>
+            </div>
+            <button class="icon-btn danger" (click)="removeLine(i)" aria-label="Remove line">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M6 7h12v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7zm3-4h6l1 1h4v2H4V4h4l1-1z"
+                />
+              </svg>
+            </button>
+          </header>
 
-            <td>
-              <!-- Per-line price mode -->
+          <div class="cart-line__grid">
+            <label class="field-group">
+              <span>Price mode</span>
               <select
                 [(ngModel)]="line.priceMode"
                 (ngModelChange)="onLinePriceModeChange(line)"
@@ -118,56 +136,54 @@
                 <option value="wholesale">Wholesale</option>
                 <option value="custom">Custom</option>
               </select>
-            </td>
+            </label>
 
-            <td>
-              <!-- EACH -->
-              <ng-container *ngIf="line.stockUnit !== 'm'; else meterFields">
+            <ng-container *ngIf="line.stockUnit !== 'm'; else meterControls">
+              <label class="field-group">
+                <span>Quantity</span>
                 <input
                   type="number"
                   min="1"
-                  [attr.max]="getItemStock(line.itemId) || 1"
+                  step="1"
                   [ngModel]="line.quantity"
-                  (ngModelChange)="updateQty(i, $event)"
-                  class="input w-24"
+                  (ngModelChange)="updateQuantity(i, $event)"
                 />
-                <small
-                  *ngIf="
-                    line.quantity && line.quantity >= getItemStock(line.itemId)
-                  "
-                >
-                  max reached
+                <small class="hint">
+                  Available: {{ getItemStock(line.itemId) }}
                 </small>
-              </ng-container>
+              </label>
+            </ng-container>
 
-              <!-- METER -->
-              <ng-template #meterFields>
-                <div class="flex-col" style="display: flex; gap: 6px">
-                  <div>
-                    <input
-                      type="number"
-                      step="1"
-                      min="0.001"
-                      [ngModel]="line.lengthMeters"
-                      (ngModelChange)="updateMeters(i, $event)"
-                      class="input w-28"
-                    />
-                    <span> m</span>
-                  </div>
-                  <div>
-                    <select [(ngModel)]="line.rollId" class="input w-44">
-                      <option [ngValue]="undefined">Auto-select roll</option>
-                      <option *ngFor="let r of line.rolls" [ngValue]="r.id">
-                        Roll #{{ r.id }} — {{ r.remaining_m }} m
-                      </option>
-                    </select>
-                  </div>
+            <ng-template #meterControls>
+              <label class="field-group">
+                <span>Metres</span>
+                <div class="meter-input">
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0.001"
+                    [ngModel]="line.lengthMeters"
+                    (ngModelChange)="updateMeters(i, $event)"
+                  />
+                  <span>m</span>
                 </div>
-              </ng-template>
-            </td>
+                <small class="hint">
+                  Available: {{ getItemStock(line.itemId) }} m
+                </small>
+              </label>
+              <label class="field-group">
+                <span>Roll</span>
+                <select [(ngModel)]="line.rollId">
+                  <option [ngValue]="undefined">Auto-select roll</option>
+                  <option *ngFor="let r of line.rolls" [ngValue]="r.id">
+                    Roll #{{ r.id }} · {{ r.remaining_m }} m
+                  </option>
+                </select>
+              </label>
+            </ng-template>
 
-            <td>
-              <!-- Unit price (editable only when custom) -->
+            <label class="field-group">
+              <span>Unit price</span>
               <input
                 type="number"
                 step="0.01"
@@ -175,69 +191,99 @@
                 [disabled]="line.priceMode !== 'custom'"
                 [ngModel]="line.price"
                 (ngModelChange)="onCustomPriceChange(line, $event)"
-                class="input w-28"
-                title="Unit price (per piece or per meter)"
               />
-            </td>
+            </label>
+          </div>
 
-            <td>{{ lineTotal(line) | number : "1.2-2" }}</td>
-            <td>
-              <button class="btn-danger" (click)="removeLine(i)">✕</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+          <footer class="cart-line__footer">
+            <span class="cart-available">
+              Available:
+              {{ getItemStock(line.itemId) }}
+              <ng-container *ngIf="line.stockUnit === 'm'">m</ng-container>
+            </span>
+            <span class="cart-total">
+              Line total:
+              <strong>{{ lineTotal(line) | number : '1.2-2' }}</strong>
+            </span>
+          </footer>
+        </article>
+      </div>
 
       <ng-template #emptyCart>
-        <p class="muted">No items yet. Click items on the left to add.</p>
+        <p class="empty-state">No items yet. Click an item on the left to add it.</p>
       </ng-template>
 
       <div class="cart-summary">
-        <div>
-          Subtotal: <b>{{ subtotal() | number : "1.2-2" }}</b>
+        <div class="summary-line">
+          Subtotal <span>{{ subtotal() | number : '1.2-2' }}</span>
         </div>
       </div>
 
       <div class="pay-now">
-        <label
-          >Paid now
+        <label class="form-field">
+          <span>Paid now</span>
           <input
             type="number"
             min="0"
             step="0.01"
-            [(ngModel)]="amountPaidNow"
+            [(ngModel)]="paidNow"
             placeholder="0.00"
           />
         </label>
-        <label
-          >Cashbox
-          <select [(ngModel)]="cashbox">
+        <label class="form-field">
+          <span>Cashbox</span>
+          <select [(ngModel)]="cashbox" [disabled]="!paidNow">
             <option value="A">A</option>
             <option value="B">B</option>
             <option value="C">C</option>
           </select>
         </label>
-        <label
-          >Method
-          <select [(ngModel)]="payMethod">
+        <label class="form-field">
+          <span>Method</span>
+          <select [(ngModel)]="payMethod" [disabled]="!paidNow">
             <option value="cash">Cash</option>
             <option value="card">Card</option>
             <option value="transfer">Transfer</option>
             <option value="other">Other</option>
           </select>
         </label>
+        <label class="form-field flex-1">
+          <span>Payment note</span>
+          <input
+            type="text"
+            [(ngModel)]="paymentNote"
+            placeholder="Optional"
+            [disabled]="!paidNow"
+          />
+        </label>
+      </div>
+
+      <div class="status-row">
+        <label class="form-field">
+          <span>Status override</span>
+          <select [(ngModel)]="statusOverride">
+            <option value="">Auto</option>
+            <option value="PAID">Marked as Paid</option>
+            <option value="PARTIAL">Marked as Partial</option>
+            <option value="UNPAID">Marked as Unpaid</option>
+          </select>
+        </label>
+        <label class="form-field flex-1" *ngIf="statusOverride">
+          <span>Override note</span>
+          <input
+            type="text"
+            [(ngModel)]="statusOverrideNote"
+            placeholder="Why override?"
+          />
+        </label>
       </div>
 
       <div class="checkout-row">
-        <input [(ngModel)]="note" placeholder="Note (optional)" />
-        <button
-          class="btn-primary"
-          [disabled]="!cart.length"
-          (click)="checkout()"
-        >
+        <input [(ngModel)]="note" placeholder="Receipt note (optional)" />
+        <button class="btn btn-primary" [disabled]="!cart.length" (click)="checkout()">
           Checkout
         </button>
       </div>
-    </div>
+    </section>
   </div>
 </div>

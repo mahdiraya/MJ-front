@@ -1,0 +1,172 @@
+<div class="ledger-page">
+  <header class="header">
+    <div>
+      <h1>Cashbox Ledger</h1>
+      <p class="subtitle">
+        Record ad-hoc income or expense entries and review manual movements.
+      </p>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" (click)="resetFilters()" [disabled]="loading">
+        Reset filters
+      </button>
+      <button class="btn primary" type="button" (click)="loadEntries()" [disabled]="loading">
+        {{ loading ? "Loading..." : "Apply filters" }}
+      </button>
+    </div>
+  </header>
+
+  <section class="filters">
+    <label>
+      Kind
+      <select [(ngModel)]="filters.kind">
+        <option [ngValue]="undefined">All</option>
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+      </select>
+    </label>
+    <label>
+      Cashbox ID
+      <input
+        type="number"
+        min="1"
+        [(ngModel)]="filters.cashboxId"
+        placeholder="Any"
+      />
+    </label>
+    <label>
+      Cashbox code
+      <select [(ngModel)]="filters.cashboxCode">
+        <option [ngValue]="undefined">Any</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+      </select>
+    </label>
+    <label>
+      From date
+      <input type="date" [(ngModel)]="filters.startDate" />
+    </label>
+    <label>
+      To date
+      <input type="date" [(ngModel)]="filters.endDate" />
+    </label>
+    <label class="search">
+      Search note
+      <input
+        type="search"
+        [(ngModel)]="filters.search"
+        placeholder="Contains..."
+      />
+    </label>
+  </section>
+
+  <section class="entry-form">
+    <h2>New manual entry</h2>
+    <form (ngSubmit)="submit()">
+      <label>
+        Kind
+        <select [(ngModel)]="form.kind" name="kind">
+          <option *ngFor="let k of kinds" [ngValue]="k.value">
+            {{ k.label }}
+          </option>
+        </select>
+      </label>
+      <label>
+        Amount
+        <input
+          type="number"
+          min="0.01"
+          step="0.01"
+          [(ngModel)]="form.amount"
+          name="amount"
+          required
+        />
+      </label>
+      <label>
+        Cashbox code
+        <select [(ngModel)]="form.cashboxCode" name="cashboxCode">
+          <option value="A">A</option>
+          <option value="B">B</option>
+          <option value="C">C</option>
+        </select>
+      </label>
+      <label>
+        Occurred at
+        <input
+          type="datetime-local"
+          [(ngModel)]="form.occurredAt"
+          name="occurredAt"
+        />
+      </label>
+      <label class="note">
+        Note
+        <input
+          type="text"
+          [(ngModel)]="form.note"
+          name="note"
+          placeholder="Optional description"
+        />
+      </label>
+      <button class="btn primary" type="submit" [disabled]="submitting">
+        {{ submitting ? "Saving..." : "Add entry" }}
+      </button>
+    </form>
+  </section>
+
+  <section class="state" *ngIf="loading">
+    Loading manual entries...
+  </section>
+  <section class="state error" *ngIf="!loading && error">
+    {{ error }}
+  </section>
+
+  <section class="table-wrapper" *ngIf="!loading && !error">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Kind</th>
+          <th style="text-align: right">Amount</th>
+          <th>Cashbox</th>
+          <th>Date</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let entry of entries">
+          <td>#{{ entry.id }}</td>
+          <td>
+            <span
+              class="badge"
+              [class.income]="entry.kind === 'income'"
+              [class.expense]="entry.kind === 'expense'"
+            >
+              {{ entry.kind }}
+            </span>
+          </td>
+          <td style="text-align: right">
+            {{
+              (entry.kind === 'expense' ? -entry.amount : entry.amount)
+                | number : "1.2-2"
+            }}
+          </td>
+          <td>{{ cashboxDisplay(entry) }}</td>
+          <td>
+            {{
+              entry.occurredAt
+                ? (entry.occurredAt | date : "short")
+                : "—"
+            }}
+          </td>
+          <td>{{ entry.note || "—" }}</td>
+        </tr>
+        <tr *ngIf="!entries.length">
+          <td colspan="6" class="state muted">
+            No manual entries recorded for the selected filters.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</div>

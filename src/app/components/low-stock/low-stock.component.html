@@ -1,0 +1,88 @@
+<div class="low-stock-page">
+  <header class="header">
+    <div>
+      <h1>Near Out-of-Stock Items</h1>
+      <p class="subtitle">
+        Items below the configured thresholds. Adjust limits or jump to restock.
+      </p>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" (click)="resetFilters()" [disabled]="loading">
+        Reset
+      </button>
+      <button class="btn primary" type="button" (click)="load()" [disabled]="loading">
+        {{ loading ? "Checking..." : "Refresh" }}
+      </button>
+    </div>
+  </header>
+
+  <section class="filters">
+    <label>
+      Each-item threshold
+      <input
+        type="number"
+        min="0"
+        [(ngModel)]="filters.eachThreshold"
+        placeholder="5"
+      />
+    </label>
+    <label>
+      Meter-item threshold (m)
+      <input
+        type="number"
+        step="0.1"
+        min="0"
+        [(ngModel)]="filters.meterThreshold"
+        placeholder="10"
+      />
+    </label>
+    <p class="hint">
+      Items with stock less than or equal to these values are listed below.
+    </p>
+  </section>
+
+  <section class="state" *ngIf="loading">
+    Checking current stock levels...
+  </section>
+  <section class="state error" *ngIf="!loading && error">
+    {{ error }}
+  </section>
+
+  <section class="table-wrapper" *ngIf="!loading && !error">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>SKU</th>
+          <th>Category</th>
+          <th style="text-align: right">Stock</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of items">
+          <td>#{{ item.id }}</td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.sku || '—' }}</td>
+          <td>{{ item.category || '—' }}</td>
+          <td style="text-align: right">{{ formatStock(item) }}</td>
+          <td>
+            <a
+              class="link"
+              [routerLink]="['/stock-in']"
+              [queryParams]="{ itemId: item.id }"
+            >
+              Restock
+            </a>
+          </td>
+        </tr>
+        <tr *ngIf="!items.length">
+          <td colspan="6" class="state muted">
+            All items are above the current thresholds.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</div>

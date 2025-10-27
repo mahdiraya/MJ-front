@@ -53,6 +53,17 @@ header .note {
 .totals .grand {
   font-size: 18px;
 }
+.totals .status span {
+  font-weight: 600;
+  color: #0f766e;
+}
+.totals .status span.manual {
+  color: #b45309;
+}
+.manual-info {
+  font-size: 0.85rem;
+  color: #475569;
+}
 footer {
   display: flex;
   justify-content: flex-end;

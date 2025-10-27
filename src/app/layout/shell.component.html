@@ -1,9 +1,9 @@
 <div class="app-layout" [class.collapsed]="isCollapsed">
-  <nav class="drawer" role="navigation" aria-label="Main">
+  <nav class="drawer" role="navigation" aria-label="Main navigation">
     <div class="brand">
       <div class="brand-left">
-        <span class="logo">🛒</span>
-        <span class="title" *ngIf="!isCollapsed">Store App</span>
+        <span class="logo" aria-hidden="true">S</span>
+        <span class="title" *ngIf="!isCollapsed">Store Console</span>
       </div>
 
       <button
@@ -11,7 +11,6 @@
         (click)="toggleDrawer()"
         [attr.aria-expanded]="!isCollapsed"
         [attr.aria-label]="isCollapsed ? 'Expand menu' : 'Collapse menu'"
-        title="{{ isCollapsed ? 'Expand' : 'Collapse' }}"
       >
         <svg class="chev" viewBox="0 0 24 24" aria-hidden="true">
           <polyline points="15 18 9 12 15 6" />
@@ -23,11 +22,92 @@
       <ul class="navlist">
         <li>
           <a
+            routerLink="/dashboard"
+            routerLinkActive="active"
+            [attr.title]="isCollapsed ? 'Dashboard' : null"
+          >
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M3 10.5L12 3l9 7.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.8"
+              />
+              <path
+                d="M5 9.75v10.25a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V9.75"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.8"
+              />
+              <path
+                d="M10 21v-6h4v6"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.8"
+              />
+            </svg>
+            <span class="label">Dashboard</span>
+          </a>
+        </li>
+
+        <li>
+          <a
             routerLink="/items"
             routerLinkActive="active"
             [attr.title]="isCollapsed ? 'Items' : null"
           >
-            <span class="icon">📦</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect
+                x="4"
+                y="4"
+                width="6.5"
+                height="6.5"
+                rx="1.2"
+                ry="1.2"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+              <rect
+                x="13.5"
+                y="4"
+                width="6.5"
+                height="6.5"
+                rx="1.2"
+                ry="1.2"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+              <rect
+                x="4"
+                y="13.5"
+                width="6.5"
+                height="6.5"
+                rx="1.2"
+                ry="1.2"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+              <rect
+                x="13.5"
+                y="13.5"
+                width="6.5"
+                height="6.5"
+                rx="1.2"
+                ry="1.2"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+            </svg>
             <span class="label">Items</span>
           </a>
         </li>
@@ -38,19 +118,45 @@
             routerLinkActive="active"
             [attr.title]="isCollapsed ? 'Sell' : null"
           >
-            <span class="icon">🧾</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M3.5 4.5h2.3l1.4 10.7a1.6 1.6 0 0 0 1.6 1.4H17a1.6 1.6 0 0 0 1.54-1.14l1.66-5.36H7.4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle cx="10" cy="20" r="1.3" fill="currentColor" />
+              <circle cx="17" cy="20" r="1.3" fill="currentColor" />
+            </svg>
             <span class="label">Sell</span>
           </a>
         </li>
 
-        <!-- NEW: Receipts History -->
         <li>
           <a
             routerLink="/receipts"
             routerLinkActive="active"
             [attr.title]="isCollapsed ? 'Receipts' : null"
           >
-            <span class="icon">📜</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M7.25 3.5h9.5A1.75 1.75 0 0 1 18.5 5.25v14.5L15 17.75 12 20l-3-2.25L5.5 19.75V5.25A1.75 1.75 0 0 1 7.25 3.5Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M9 8.25h6M9 12h6"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+            </svg>
             <span class="label">Receipts</span>
           </a>
         </li>
@@ -61,8 +167,186 @@
             routerLinkActive="active"
             [attr.title]="isCollapsed ? 'Stock In' : null"
           >
-            <span class="icon">📥</span>
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 3v12m0 0 4.5-4.5M12 15 7.5 10.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M5 19.25h14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+            </svg>
             <span class="label">Stock In</span>
+          </a>
+        </li>
+
+        <li>
+          <a
+            routerLink="/supplier-debt"
+            routerLinkActive="active"
+            [attr.title]="isCollapsed ? 'Supplier Debt' : null"
+          >
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect
+                x="3.5"
+                y="6"
+                width="17"
+                height="12"
+                rx="2"
+                ry="2"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+              <path
+                d="M7 12h10"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+              <path
+                d="M9.5 9.5v5M14.5 9.5v5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span class="label">Supplier Debt</span>
+          </a>
+        </li>
+
+        <li>
+          <a
+            routerLink="/purchase-movements"
+            routerLinkActive="active"
+            [attr.title]="isCollapsed ? 'Purchase Movements' : null"
+          >
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M3.75 7.5h8.5v9h-8.5z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M12.25 10.5H18l2.75 3v4h-8.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle cx="7.5" cy="18.25" r="1.25" fill="currentColor" />
+              <circle cx="18" cy="18.25" r="1.25" fill="currentColor" />
+            </svg>
+            <span class="label">Purchase Movements</span>
+          </a>
+        </li>
+
+        <li>
+          <a
+            routerLink="/sales-movements"
+            routerLinkActive="active"
+            [attr.title]="isCollapsed ? 'Sales Movements' : null"
+          >
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M4 18h16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+              <path
+                d="M6.75 14.5 11 9.75l3.5 3.25 4.5-5.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M17.25 7.5H19.5v2.25"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="label">Sales Movements</span>
+          </a>
+        </li>
+
+        <li>
+          <a
+            routerLink="/low-stock"
+            routerLinkActive="active"
+            [attr.title]="isCollapsed ? 'Low Stock' : null"
+          >
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 4.5 20.25 18H3.75L12 4.5z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M12 10.5v4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+              <circle cx="12" cy="17.5" r="1.2" fill="currentColor" />
+            </svg>
+            <span class="label">Low Stock</span>
+          </a>
+        </li>
+
+        <li>
+          <a
+            routerLink="/cashbox-ledger"
+            routerLinkActive="active"
+            [attr.title]="isCollapsed ? 'Cashbox Ledger' : null"
+          >
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M6 4.5h12a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 18V6A1.5 1.5 0 0 1 6 4.5Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M8.5 4.5v15"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+              <path
+                d="M11 9h5.5M11 13h5.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span class="label">Cashbox Ledger</span>
           </a>
         </li>
       </ul>
@@ -74,7 +358,24 @@
         (click)="logout()"
         [attr.title]="isCollapsed ? 'Logout' : null"
       >
-        <span class="icon">👋</span>
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M8.75 5.75V4.5A1.75 1.75 0 0 1 10.5 2.75h6.75A1.75 1.75 0 0 1 19 4.5v15a1.75 1.75 0 0 1-1.75 1.75H10.5A1.75 1.75 0 0 1 8.75 19.5v-1.25"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M4 12h10.5M11 8.5 15.5 12 11 15.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
         <span class="label">Logout</span>
       </button>
     </div>

@@ -1,79 +1,17 @@
-.history-wrap {
-  display: grid;
-  gap: 12px;
+.receipts-view .controls {
+  align-items: flex-end;
+  gap: 18px;
 }
 
-.filters {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
+.receipts-view .controls .form-field {
+  min-width: 220px;
 }
 
-.filters input[type="date"],
-.filters select,
-.filters input[type="text"],
-.filters input:not([type]),
-.filters input[type="search"] {
-  padding: 6px 8px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
+.receipts-view .controls .flex-1 {
+  flex: 1 1 320px;
 }
 
-.btn {
-  padding: 6px 10px;
-  border: 1px solid #94a3b8;
-  background: #f8fafc;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.table-wrapper {
-  overflow: auto;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-th,
-td {
-  padding: 10px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-thead th {
-  background: #f1f5f9;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.actions {
-  display: flex;
-  gap: 6px;
-}
-
-.state {
-  padding: 16px;
-}
-.state.error {
-  color: #ef4444;
-}
-
-.muted {
-  color: #64748b;
-  text-align: center;
-  padding: 24px 0;
-}
-
-.pagination {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: center;
+.receipts-view .table-card .actions {
+  display: inline-flex;
+  gap: 8px;
 }

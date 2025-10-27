@@ -1,0 +1,240 @@
+<div class="supplier-debt">
+  <header class="header">
+    <div>
+      <h1>Supplier Debt</h1>
+      <p class="subtitle">
+        Track outstanding restock invoices and record supplier payments.
+      </p>
+    </div>
+    <button class="btn" type="button" (click)="loadOverview()" [disabled]="overviewLoading">
+      {{ overviewLoading ? "Refreshing..." : "Refresh" }}
+    </button>
+  </header>
+
+  <div class="content">
+    <aside class="panel">
+      <div class="panel-header">
+        <h2>Suppliers</h2>
+        <input
+          type="search"
+          placeholder="Search suppliers..."
+          [(ngModel)]="search"
+          (ngModelChange)="applyFilters()"
+        />
+      </div>
+
+      <div class="panel-body">
+        <p class="state" *ngIf="overviewLoading">Loading suppliers...</p>
+        <p class="state" *ngIf="!overviewLoading && !filteredSuppliers.length">
+          No suppliers with restocks yet.
+        </p>
+
+        <ul class="supplier-list" *ngIf="filteredSuppliers.length">
+          <li
+            *ngFor="let supplier of filteredSuppliers"
+            (click)="supplier.supplierId != null && selectSupplier(supplier.supplierId)"
+            [class.active]="supplier.supplierId === selectedSupplierId"
+            [class.disabled]="supplier.supplierId == null"
+          >
+            <div class="name">
+              {{ supplier.supplierName }}
+              <span class="id" *ngIf="supplier.supplierId != null">
+                #{{ supplier.supplierId }}
+              </span>
+            </div>
+            <div class="amount" [class]="outstandingStyle(supplier)">
+              {{ supplier.outstanding | number : "1.2-2" }}
+            </div>
+            <div class="meta">
+              <span>Invoices: {{ supplier.restockCount }}</span>
+              <span>Paid: {{ supplier.paid | number : "1.2-2" }}</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="summary" *ngIf="overview?.totalOutstanding != null">
+        Total outstanding:
+        <strong>{{ overview?.totalOutstanding | number : "1.2-2" }}</strong>
+      </div>
+    </aside>
+
+    <section class="detail">
+      <div *ngIf="detailLoading" class="state">
+        Loading supplier detail...
+      </div>
+
+      <ng-container *ngIf="!detailLoading && detail">
+        <header class="detail-header">
+          <div>
+            <h2>{{ detail.supplier.name }}</h2>
+            <p class="subtitle">
+              Outstanding:
+              {{ detail.summary.outstanding | number : "1.2-2" }}
+            </p>
+          </div>
+          <button class="btn" type="button" (click)="refreshDetail()">
+            Reload
+          </button>
+        </header>
+
+        <div class="summary-cards">
+          <article>
+            <h3>Total purchases</h3>
+            <p>{{ detail.summary.total | number : "1.2-2" }}</p>
+          </article>
+          <article>
+            <h3>Paid</h3>
+            <p>{{ detail.summary.paid | number : "1.2-2" }}</p>
+          </article>
+          <article>
+            <h3>Outstanding</h3>
+            <p class="due">
+              {{ detail.summary.outstanding | number : "1.2-2" }}
+            </p>
+          </article>
+        </div>
+
+        <section class="payment-form">
+          <h3>Record payment</h3>
+          <form (ngSubmit)="submitPayment()">
+            <label>
+              Amount
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                [(ngModel)]="paymentAmount"
+                name="amount"
+                required
+              />
+            </label>
+            <label>
+              Cashbox
+              <select [(ngModel)]="paymentCashbox" name="cashbox">
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+              </select>
+            </label>
+            <label>
+              Method
+              <select [(ngModel)]="paymentMethod" name="method">
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="transfer">Transfer</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label>
+              Payment date
+              <input
+                type="date"
+                [(ngModel)]="paymentDate"
+                name="paymentDate"
+              />
+            </label>
+            <label class="note">
+              Note
+              <input
+                type="text"
+                [(ngModel)]="paymentNote"
+                name="note"
+                placeholder="Optional"
+              />
+            </label>
+            <button class="btn primary" type="submit" [disabled]="submittingPayment">
+              {{ submittingPayment ? "Saving..." : "Save payment" }}
+            </button>
+          </form>
+          <p class="hint">
+            Payments are allocated to the oldest outstanding restocks first.
+          </p>
+        </section>
+
+        <section class="tables">
+          <article>
+            <h3>Restock invoices</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Date</th>
+                  <th style="text-align: right">Total</th>
+                  <th style="text-align: right">Paid</th>
+                  <th style="text-align: right">Outstanding</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let restock of detail.restocks">
+                  <td>#{{ restock.id }}</td>
+                  <td>{{ restock.date ? (restock.date | date : "shortDate") : "—" }}</td>
+                  <td style="text-align: right">
+                    {{ restock.total | number : "1.2-2" }}
+                  </td>
+                  <td style="text-align: right">
+                    {{ restock.paid | number : "1.2-2" }}
+                  </td>
+                  <td style="text-align: right">
+                    {{ restock.outstanding | number : "1.2-2" }}
+                  </td>
+                  <td>
+                    <span
+                      class="badge"
+                      [class.paid]="restock.status === 'PAID'"
+                      [class.partial]="restock.status === 'PARTIAL'"
+                      [class.unpaid]="restock.status === 'UNPAID'"
+                    >
+                      {{ restock.status }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article>
+            <h3>Payments</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Restock</th>
+                  <th style="text-align: right">Amount</th>
+                  <th>Cashbox</th>
+                  <th>Date</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let payment of detail.payments">
+                  <td>#{{ payment.id }}</td>
+                  <td>#{{ payment.restockId }}</td>
+                  <td style="text-align: right">
+                    {{ payment.amount | number : "1.2-2" }}
+                  </td>
+                  <td>{{ payment.cashboxCode || "—" }}</td>
+                  <td>
+                    {{
+                      payment.createdAt
+                        ? (payment.createdAt | date : "short")
+                        : "—"
+                    }}
+                  </td>
+                  <td>{{ payment.note || "—" }}</td>
+                </tr>
+                <tr *ngIf="!detail.payments.length">
+                  <td colspan="6" class="state">No payments yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </article>
+        </section>
+      </ng-container>
+
+      <div *ngIf="!detailLoading && !detail" class="state">
+        Select a supplier to view details.
+      </div>
+    </section>
+  </div>
+</div>

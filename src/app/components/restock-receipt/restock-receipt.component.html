@@ -5,7 +5,7 @@
       <div><b>#</b> IN-{{ data.id }}</div>
       <div><b>Date</b> {{ data.date | date : "medium" }}</div>
       <div>
-        <b>Supplier</b> {{ data.supplierId ? "#" + data.supplierId : "-" }}
+        <b>Supplier</b> {{ data.supplierName || (data.supplierId ? "#" + data.supplierId : "-") }}
       </div>
       <div>
         <b>Cashier</b> {{ data.user?.name || "#" + data.user?.id || "-" }}
@@ -53,6 +53,25 @@
     <div class="grand">
       Total: <b>{{ data.total | number : "1.2-2" }}</b>
     </div>
+    <div>
+      Paid: <b>{{ data.paid | number : "1.2-2" }}</b>
+    </div>
+    <div>
+      Balance:
+      <b>{{ (data.total - data.paid) | number : "1.2-2" }}</b>
+    </div>
+    <div class="status">
+      Status:
+      <span [class.manual]="data.statusManualEnabled">
+        {{ data.status | uppercase }}
+      </span>
+    </div>
+    <div class="manual-info" *ngIf="data.statusManualEnabled">
+      Manual override: {{ data.statusManualValue || 'N/A' }}
+      <ng-container *ngIf="data.statusManualNote">
+        ({{ data.statusManualNote }})
+      </ng-container>
+    </div>
   </div>
 
   <footer>
@@ -64,3 +83,5 @@
   <div class="state" *ngIf="loading">Loading…</div>
   <div class="state error" *ngIf="!loading && error">{{ error }}</div>
 </ng-template>
+
+

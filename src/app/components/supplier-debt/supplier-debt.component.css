@@ -1,0 +1,278 @@
+.supplier-debt {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  min-height: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  margin: 0;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: #64748b;
+}
+
+.btn {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 16px;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.panel-header {
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  display: grid;
+  gap: 10px;
+}
+
+.panel-header input {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+}
+
+.panel-body {
+  overflow-y: auto;
+}
+
+.supplier-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.supplier-list li {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+}
+
+.supplier-list li.active {
+  background: #eff6ff;
+}
+
+.supplier-list li.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.supplier-list .name {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.supplier-list .id {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.supplier-list .amount {
+  font-weight: 700;
+}
+
+.supplier-list .amount.paid {
+  color: #047857;
+}
+
+.supplier-list .amount.due {
+  color: #b91c1c;
+}
+
+.supplier-list .meta {
+  display: flex;
+  justify-content: space-between;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.panel .summary {
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.detail {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-cards {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.summary-cards article {
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.summary-cards h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.summary-cards p {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.summary-cards .due {
+  color: #b45309;
+}
+
+.payment-form {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  background: #fefce8;
+}
+
+.payment-form form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.payment-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.payment-form input,
+.payment-form select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+}
+
+.payment-form .note {
+  grid-column: 1 / -1;
+}
+
+.payment-form .hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.tables {
+  display: grid;
+  gap: 16px;
+}
+
+.tables article {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+
+.tables h3 {
+  margin: 0 0 10px;
+}
+
+.tables table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tables th,
+.tables td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tables tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.badge {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge.paid {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+}
+
+.badge.partial {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.badge.unpaid {
+  background: rgba(248, 113, 113, 0.15);
+  color: #b91c1c;
+}
+
+.state {
+  text-align: center;
+  color: #64748b;
+  padding: 16px;
+}
+
+@media (max-width: 960px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+}

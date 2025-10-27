@@ -108,6 +108,13 @@ hr {
   border-top: 1px dashed #cbd5e1;
   padding-top: 4px;
 }
+.totals .status span:last-child {
+  font-weight: 700;
+  color: #0f766e;
+}
+.totals .status span:last-child.manual {
+  color: #b45309;
+}
 
 .foot {
   text-align: center;

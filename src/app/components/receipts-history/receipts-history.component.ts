@@ -40,10 +40,26 @@ export class ReceiptsHistoryComponent implements OnInit {
     this.loading = true;
     this.api.getReceiptsHistory().subscribe({
       next: (rows) => {
-        this.rows = (rows || []).map((r) => ({
-          ...r,
-          date: r.date || new Date(0).toISOString(),
-        }));
+        this.rows = (rows || []).map((r) => {
+          const normalizedCode = (() => {
+            const candidate = r.statusCode ?? r.status?.toUpperCase();
+            if (!candidate) return undefined;
+            if (candidate === 'PAID' || candidate === 'PARTIAL' || candidate === 'UNPAID') {
+              return candidate as 'PAID' | 'PARTIAL' | 'UNPAID';
+            }
+            return undefined;
+          })();
+          const normalizedStatus = normalizedCode
+            ? (normalizedCode.toLowerCase() as UnifiedReceiptRow['status'])
+            : undefined;
+          return {
+            ...r,
+            date: r.date || new Date(0).toISOString(),
+            statusCode: normalizedCode,
+            status: normalizedStatus,
+            paid: typeof r.paid === 'number' ? r.paid : undefined,
+          };
+        });
         this.page = 1;
         this.applyFilters();
         this.loading = false;

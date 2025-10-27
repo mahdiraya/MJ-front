@@ -1,39 +1,220 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 /* ========= Types ========= */
 export type ItemCategory = 'internet' | 'solar' | 'camera' | 'satellite';
 export type StockUnit = 'm' | null;
 export type PriceTier = 'retail' | 'wholesale';
-export type Cashbox = 'A' | 'B' | 'C';
+export type CashboxCode = 'A' | 'B' | 'C';
 export type PayMethod = 'cash' | 'card' | 'transfer' | 'other';
 
-export interface CreateTransactionDto {
-  customer?: number | null;
-  receipt_type: 'simple' | 'detailed';
-  items: TxLine[];
-  note?: string;
-
-  // NEW (optional immediate payment):
-  amountPaidNow?: number;
-  cashbox?: Cashbox;
-  payMethod?: PayMethod;
+export interface StatsOverview {
+  generatedAt: string;
+  cashboxes: Array<{
+    id: number;
+    code: string;
+    label: string;
+    isActive: boolean;
+    balance: number;
+    totalIn: number;
+    totalOut: number;
+    lastMovementAt: string | null;
+  }>;
+  supplierDebt: {
+    totalOutstanding: number;
+    suppliers: Array<{
+      supplierId: number | null;
+      total: number;
+      paid: number;
+      outstanding: number;
+    }>;
+  };
+  sales: {
+    today: number;
+    last7Days: number;
+    daily: Array<{ date: string; total: number }>;
+  };
+  restocks: {
+    today: number;
+    last7Days: number;
+    daily: Array<{ date: string; total: number }>;
+  };
+  netCashDaily: Array<{ date: string; total: number }>;
+  cashboxTotals: {
+    totalIn: number;
+    totalOut: number;
+    balance: number;
+  };
 }
 
-export interface CreateRestockDto {
-  supplier?: number;
-  date?: string;
-  note?: string;
-  tax?: number;
-  items: CreateRestockLine[];
-
-  // NEW
-  amountPaidNow?: number;
-  cashbox?: Cashbox;
-  payMethod?: PayMethod;
+export interface Supplier {
+  id: number;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  notes?: string | null;
 }
 
+export interface SupplierDebtSummaryRow {
+  supplierId: number | null;
+  supplierName: string;
+  restockCount: number;
+  total: number;
+  paid: number;
+  outstanding: number;
+}
+
+export interface SupplierDebtOverview {
+  suppliers: SupplierDebtSummaryRow[];
+  totalOutstanding: number;
+}
+
+export interface SupplierDebtRestockRow {
+  id: number;
+  date: string | null;
+  total: number;
+  paid: number;
+  outstanding: number;
+  status: 'PAID' | 'PARTIAL' | 'UNPAID';
+  statusManualEnabled: boolean;
+  statusManualValue: 'PAID' | 'PARTIAL' | 'UNPAID' | null;
+}
+
+export interface SupplierDebtPaymentRow {
+  id: number;
+  restockId: number;
+  amount: number;
+  note: string | null;
+  cashboxCode: string | null;
+  createdAt: string | null;
+}
+
+export interface SupplierDebtDetail {
+  supplier: {
+    id: number;
+    name: string;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+  };
+  summary: {
+    total: number;
+    paid: number;
+    outstanding: number;
+  };
+  restocks: SupplierDebtRestockRow[];
+  payments: SupplierDebtPaymentRow[];
+}
+
+export interface RecordSupplierPaymentPayload {
+  amount: number;
+  cashboxId?: number;
+  cashboxCode?: CashboxCode;
+  paymentDate?: string;
+  note?: string;
+  payMethod?: PayMethod;
+  allocations?: Array<{ restockId: number; amount: number }>;
+}
+
+export interface RestockMovementRow {
+  id: number;
+  date: string | null;
+  supplierId: number | null;
+  supplierName: string | null;
+  total: number;
+  tax: number | null;
+  paid: number;
+  outstanding: number;
+  status: 'PAID' | 'PARTIAL' | 'UNPAID';
+  cashboxes: string[];
+  user: { id: number; name?: string | null; username?: string | null } | null;
+}
+
+export interface TransactionMovementRow {
+  id: number;
+  date: string | null;
+  customerId: number | null;
+  customerName: string | null;
+  total: number;
+  paid: number;
+  outstanding: number;
+  status: 'PAID' | 'PARTIAL' | 'UNPAID';
+  cashboxes: string[];
+  user: { id: number; name?: string | null; username?: string | null } | null;
+}
+
+export interface RestockMovementsParams {
+  supplierId?: number;
+  status?: 'PAID' | 'PARTIAL' | 'UNPAID';
+  cashboxCode?: CashboxCode;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+}
+
+export interface TransactionMovementsParams {
+  customerId?: number;
+  status?: 'PAID' | 'PARTIAL' | 'UNPAID';
+  cashboxCode?: CashboxCode;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+}
+
+export interface LowStockItem {
+  id: number;
+  name: string;
+  sku: string | null;
+  category: ItemCategory | null;
+  stockUnit: StockUnit;
+  stock: number;
+}
+
+export interface LowStockParams {
+  eachThreshold?: number;
+  meterThreshold?: number;
+}
+
+export interface CashboxSummary {
+  id: number;
+  code: string;
+  label: string;
+  isActive: boolean;
+}
+
+export interface CashboxManualEntryRow {
+  id: number;
+  kind: 'income' | 'expense';
+  direction: 'in' | 'out';
+  amount: number;
+  note: string | null;
+  occurredAt: string | null;
+  cashbox: {
+    id: number;
+    code: string;
+    label: string;
+  } | null;
+}
+
+export interface CashboxManualEntryParams {
+  kind?: 'income' | 'expense';
+  cashboxId?: number;
+  cashboxCode?: CashboxCode;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+}
+
+export interface CreateCashboxManualEntryPayload {
+  amount: number;
+  kind: 'income' | 'expense';
+  cashboxId?: number;
+  cashboxCode?: CashboxCode;
+  note?: string;
+  occurredAt?: string;
+}
 export type NewItemPayload = {
   name: string;
   sku?: string | null;
@@ -70,6 +251,9 @@ export type UnifiedReceiptRow = {
   type: string;
   user?: { id: number; name?: string } | null;
   party?: { id: number; name?: string } | null;
+  paid?: number;
+  status?: 'paid' | 'partial' | 'unpaid';
+  statusCode?: 'PAID' | 'PARTIAL' | 'UNPAID';
 };
 
 export interface RestockReceipt {
@@ -77,10 +261,18 @@ export interface RestockReceipt {
   date: string;
   created_at: string;
   supplierId: number | null;
+  supplierName: string | null;
   note: string | null;
   subtotal: number;
   tax: number;
   total: number;
+  paid: number;
+  status: 'paid' | 'partial' | 'unpaid';
+  statusCode: 'PAID' | 'PARTIAL' | 'UNPAID';
+  statusManualEnabled?: boolean;
+  statusManualValue?: 'PAID' | 'PARTIAL' | 'UNPAID' | null;
+  statusManualNote?: string | null;
+  statusManualSetAt?: string | null;
   user: { id: number; name?: string } | null;
   items: Array<{
     id: number;
@@ -96,14 +288,6 @@ export interface RestockReceipt {
     price_each: number;
     line_total: number;
   }>;
-}
-
-export interface CreateRestockDto {
-  supplier?: number;
-  date?: string; // ISO
-  note?: string;
-  tax?: number;
-  items: CreateRestockLine[];
 }
 
 export type UnifiedReceipt = {
@@ -176,6 +360,31 @@ export interface CreateTransactionDto {
   receipt_type: ReceiptType;
   items: TxLine[];
   note?: string;
+  paid?: number;
+  cashboxId?: number;
+  cashboxCode?: CashboxCode;
+  paymentDate?: string;
+  paymentNote?: string;
+  statusOverride?: 'PAID' | 'PARTIAL' | 'UNPAID';
+  statusOverrideNote?: string;
+  payMethod?: PayMethod;
+}
+
+export interface CreateRestockDto {
+  supplier?: number;
+  supplierName?: string;
+  date?: string;
+  note?: string;
+  tax?: number;
+  items: CreateRestockLine[];
+  paid?: number;
+  cashboxId?: number;
+  cashboxCode?: CashboxCode;
+  paymentDate?: string;
+  paymentNote?: string;
+  statusOverride?: 'PAID' | 'PARTIAL' | 'UNPAID';
+  statusOverrideNote?: string;
+  payMethod?: PayMethod;
 }
 
 export interface LegacyCreateTransactionPayload {
@@ -203,6 +412,13 @@ export interface Transaction {
   user: { id: number; name?: string };
   customer?: { id: number; name?: string } | null;
   transactionItems: TransactionItem[];
+  paid?: number;
+  status?: 'paid' | 'partial' | 'unpaid';
+  statusCode?: 'PAID' | 'PARTIAL' | 'UNPAID';
+  statusManualEnabled?: boolean;
+  statusManualValue?: 'PAID' | 'PARTIAL' | 'UNPAID' | null;
+  statusManualNote?: string | null;
+  statusManualSetAt?: string | null;
 }
 
 export interface RestockRollLink {
@@ -223,11 +439,19 @@ export interface Restock {
   id: number;
   date: string;
   user: { id: number; name?: string };
-  supplier_id?: number | null;
+  supplierId?: number | null;
+  supplierName?: string | null;
   note?: string | null;
   subtotal?: number | null;
   tax?: number | null;
   total?: number | null;
+  paid?: number | null;
+  status?: 'paid' | 'partial' | 'unpaid';
+  statusCode?: 'PAID' | 'PARTIAL' | 'UNPAID';
+  statusManualEnabled?: boolean;
+  statusManualValue?: 'PAID' | 'PARTIAL' | 'UNPAID' | null;
+  statusManualNote?: string | null;
+  statusManualSetAt?: string | null;
   items: RestockItem[];
 }
 
@@ -364,6 +588,30 @@ export class ApiService {
     return this.http.post<any>(`${this.BASE_URL}/restocks`, payload);
   }
 
+  getRestockMovements(params: RestockMovementsParams = {}) {
+    let httpParams = new HttpParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      httpParams = httpParams.set(key, String(value));
+    });
+    return this.http.get<RestockMovementRow[]>(
+      `${this.BASE_URL}/restocks/movements`,
+      { params: httpParams }
+    );
+  }
+
+  getSalesMovements(params: TransactionMovementsParams = {}) {
+    let httpParams = new HttpParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      httpParams = httpParams.set(key, String(value));
+    });
+    return this.http.get<TransactionMovementRow[]>(
+      `${this.BASE_URL}/transactions/movements`,
+      { params: httpParams }
+    );
+  }
+
   getUnifiedReceipts(limit = 200) {
     return this.http.get<UnifiedReceipt[]>(
       `${this.BASE_URL}/receipts/history`,
@@ -383,4 +631,69 @@ export class ApiService {
       `${this.BASE_URL}/restocks/${id}/receipt`
     );
   }
+
+  getStatsOverview() {
+    return this.http.get<StatsOverview>(`${this.BASE_URL}/stats/overview`);
+  }
+
+  getSuppliers() {
+    return this.http.get<Supplier[]>(`${this.BASE_URL}/suppliers`);
+  }
+
+  getSupplierDebtOverview() {
+    return this.http.get<SupplierDebtOverview>(
+      `${this.BASE_URL}/suppliers/debt/overview`
+    );
+  }
+
+  getSupplierDebtDetail(id: number) {
+    return this.http.get<SupplierDebtDetail>(
+      `${this.BASE_URL}/suppliers/debt/${id}`
+    );
+  }
+
+  recordSupplierPayment(
+    supplierId: number,
+    payload: RecordSupplierPaymentPayload
+  ) {
+    return this.http.post(
+      `${this.BASE_URL}/suppliers/debt/${supplierId}/payments`,
+      payload
+    );
+  }
+
+  getLowStockItems(params: LowStockParams = {}) {
+    let httpParams = new HttpParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      httpParams = httpParams.set(key, String(value));
+    });
+    return this.http.get<LowStockItem[]>(`${this.BASE_URL}/items/low-stock`, {
+      params: httpParams,
+    });
+  }
+
+  getCashboxes() {
+    return this.http.get<CashboxSummary[]>(`${this.BASE_URL}/cashboxes`);
+  }
+
+  getCashboxManualEntries(params: CashboxManualEntryParams = {}) {
+    let httpParams = new HttpParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      httpParams = httpParams.set(key, String(value));
+    });
+    return this.http.get<CashboxManualEntryRow[]>(
+      `${this.BASE_URL}/cashboxes/manual`,
+      { params: httpParams }
+    );
+  }
+
+  createCashboxManualEntry(payload: CreateCashboxManualEntryPayload) {
+    return this.http.post<CashboxManualEntryRow>(
+      `${this.BASE_URL}/cashboxes/manual`,
+      payload
+    );
+  }
 }
+

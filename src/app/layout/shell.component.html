@@ -133,6 +133,31 @@
             <span class="label">Sell</span>
           </a>
         </li>
+        <li>
+          <a
+            routerLink="/customers"
+            routerLinkActive="active"
+            [attr.title]="isCollapsed ? 'Customers' : null"
+          >
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+              <path
+                d="M5 20.25a7 7 0 0 1 14 0"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="label">Customers</span>
+          </a>
+        </li>
 
         <li>
           <a

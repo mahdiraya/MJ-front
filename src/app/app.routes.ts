@@ -37,6 +37,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'customers',
+        loadComponent: () =>
+          import('./components/customers/customers.component').then(
+            (m) => m.CustomersComponent
+          ),
+      },
+      {
+        path: 'customers/:id',
+        loadComponent: () =>
+          import(
+            './components/customer-detail/customer-detail.component'
+          ).then((m) => m.CustomerDetailComponent),
+      },
+      {
         path: 'receipt/:id', // OUT (sales) receipt
         loadComponent: () =>
           import('./components/receipt/receipt.component').then(

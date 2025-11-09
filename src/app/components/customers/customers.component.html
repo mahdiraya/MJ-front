@@ -1,0 +1,66 @@
+<div class="view customers-view">
+  <header class="view-header">
+    <div>
+      <h1 class="view-title">Customers</h1>
+      <p class="view-subtitle">
+        Only customers recorded during checkout are shown. Empty names are treated as walk-ins.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button class="btn" type="button" (click)="load()" [disabled]="loading">
+        {{ loading ? 'Refreshing...' : 'Refresh list' }}
+      </button>
+    </div>
+  </header>
+
+  <section class="state" *ngIf="loading">
+    <p>Loading customers...</p>
+  </section>
+  <section class="state error" *ngIf="!loading && error">
+    <p>{{ error }}</p>
+  </section>
+
+  <section class="surface-card customers-card" *ngIf="!loading && !error">
+    <ng-container *ngIf="customers.length; else emptyState">
+      <table class="customers-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Receipts</th>
+            <th>Total spent</th>
+            <th>Last purchase</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let customer of customers; trackBy: trackById">
+            <td class="name-cell">
+              <span class="customer-name">{{ customer.name }}</span>
+            </td>
+            <td>{{ customer.receiptCount }}</td>
+            <td>{{ customer.totalSpent | number : '1.2-2' }}</td>
+            <td>
+              {{
+                customer.lastPurchase
+                  ? (customer.lastPurchase | date : 'medium')
+                  : '--'
+              }}
+            </td>
+            <td class="actions">
+              <a
+                class="btn btn-ghost"
+                [routerLink]="['/customers', customer.id]"
+                >View receipts</a
+              >
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </ng-container>
+    <ng-template #emptyState>
+      <p class="empty-state">
+        No named customers recorded yet. Enter a customer name during checkout to track them.
+      </p>
+    </ng-template>
+  </section>
+</div>

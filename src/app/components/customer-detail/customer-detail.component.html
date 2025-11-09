@@ -1,0 +1,92 @@
+<div class="view customer-detail-view">
+  <header class="view-header">
+    <div>
+      <h1 class="view-title">
+        {{ customer?.name || 'Customer' }}
+      </h1>
+      <p class="view-subtitle">
+        Month-to-date receipts and history for this customer.
+      </p>
+    </div>
+    <div class="header-actions">
+      <a class="btn btn-ghost" routerLink="/customers">Back to customers</a>
+      <button class="btn" type="button" (click)="customer && load(customer.id)" [disabled]="loading">
+        {{ loading ? 'Refreshing...' : 'Refresh data' }}
+      </button>
+    </div>
+  </header>
+
+  <section class="state" *ngIf="loading">
+    <p>Loading customer details...</p>
+  </section>
+  <section class="state error" *ngIf="!loading && error">
+    <p>{{ error }}</p>
+  </section>
+
+  <ng-container *ngIf="!loading && !error && customer">
+    <section class="surface-card summary-card">
+      <h2>At a glance</h2>
+      <dl>
+        <div>
+          <dt>Total receipts</dt>
+          <dd>{{ receipts.length }}</dd>
+        </div>
+        <div>
+          <dt>Total spent</dt>
+          <dd>{{ totalSpent | number : '1.2-2' }}</dd>
+        </div>
+        <div>
+          <dt>Last purchase</dt>
+          <dd>
+            {{ lastPurchase ? (lastPurchase | date : 'medium') : '--' }}
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="surface-card receipts-card">
+      <h2>Receipts</h2>
+      <ng-container *ngIf="receipts.length; else noReceipts">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Date</th>
+              <th>Total</th>
+              <th>Paid</th>
+              <th>Outstanding</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let receipt of receipts; trackBy: trackReceipt">
+              <td>#{{ receipt.id }}</td>
+              <td>
+                {{ receipt.date ? (receipt.date | date : 'medium') : '--' }}
+              </td>
+              <td>{{ receipt.total | number : '1.2-2' }}</td>
+              <td>{{ receipt.paid | number : '1.2-2' }}</td>
+              <td>{{ receipt.outstanding | number : '1.2-2' }}</td>
+              <td>
+                <span class="status-chip" [class.partial]="receipt.status === 'PARTIAL'" [class.unpaid]="receipt.status === 'UNPAID'">
+                  {{ receipt.status }}
+                </span>
+              </td>
+              <td class="actions">
+                <a class="btn btn-ghost" [routerLink]="['/receipt', receipt.id]">
+                  View
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </ng-container>
+      <ng-template #noReceipts>
+        <p class="empty-state">
+          No receipts recorded for this customer yet.
+        </p>
+      </ng-template>
+    </section>
+  </ng-container>
+</div>

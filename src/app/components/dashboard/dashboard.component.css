@@ -373,6 +373,14 @@
   color: var(--text-secondary);
 }
 
+.metric.positive .value {
+  color: #15803d;
+}
+
+.metric.negative .value {
+  color: #dc2626;
+}
+
 .metric.debt .mini-list {
   list-style: none;
   padding: 0;
@@ -403,11 +411,50 @@
   gap: 18px;
 }
 
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .chart h3 {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.chart-toggle {
+  display: inline-flex;
+  gap: 8px;
+  background: rgba(226, 232, 240, 0.6);
+  border-radius: 999px;
+  padding: 4px;
+  flex-wrap: wrap;
+}
+
+.chart-toggle button {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 84px;
+}
+
+.chart-toggle button:hover {
+  color: var(--surface-highlight);
+}
+
+.chart-toggle button.active {
+  background: var(--surface-highlight);
+  color: white;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.25);
 }
 
 .chart-canvas {
@@ -422,6 +469,12 @@
 .chart-canvas canvas {
   width: 100% !important;
   height: 100% !important;
+}
+
+.chart-meta {
+  margin: -4px 0 6px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
 .placeholder {

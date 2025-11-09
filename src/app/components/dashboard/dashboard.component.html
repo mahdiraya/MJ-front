@@ -132,6 +132,31 @@
           7-day total: {{ stats.restocks.last7Days | number : "1.2-2" }}
         </div>
       </article>
+      <article
+        class="metric monthly"
+        [ngClass]="{
+          positive: stats.monthly.sales >= stats.monthly.collected,
+          negative: stats.monthly.sales < stats.monthly.collected
+        }"
+      >
+        <h3>Monthly Sales</h3>
+        <div class="value">
+          {{ stats.monthly.sales | number : "1.2-2" }}
+        </div>
+        <p>
+          Cash received:
+          {{ stats.monthly.collected | number : "1.2-2" }}
+        </p>
+        <div class="sub">
+          Outstanding:
+          {{
+            (stats.monthly.sales - stats.monthly.collected)
+              | number : "1.2-2"
+          }}
+          &middot; Net profit:
+          {{ stats.monthly.net | number : "1.2-2" }}
+        </div>
+      </article>
       <article class="metric debt">
         <h3>Supplier Debt</h3>
         <div class="value">
@@ -156,18 +181,69 @@
 
     <section class="charts">
       <article class="chart">
-        <h3>Sales vs Restocks (last 7 days)</h3>
-        <ng-container *ngIf="hasSalesData; else noSalesChart">
+        <div class="chart-head">
+          <h3>Profit Trend</h3>
+          <div class="chart-toggle">
+            <button
+              type="button"
+              [class.active]="profitMode === 'weekly'"
+              (click)="setProfitMode('weekly')"
+            >
+              Weekly
+            </button>
+            <button
+              type="button"
+              [class.active]="profitMode === 'monthly'"
+              (click)="setProfitMode('monthly')"
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              [class.active]="profitMode === 'yearly'"
+              (click)="setProfitMode('yearly')"
+            >
+              Yearly
+            </button>
+          </div>
+        </div>
+        <p class="chart-meta">
+          Showing {{ profitMode | titlecase }} profit
+        </p>
+        <ng-container *ngIf="hasProfitData; else noProfitChart">
           <div class="chart-canvas">
-            <canvas #salesChartCanvas></canvas>
+            <canvas #profitChartCanvas></canvas>
           </div>
         </ng-container>
       </article>
       <article class="chart">
-        <h3>Net cash flow</h3>
-        <ng-container *ngIf="hasNetCashData; else noNetCashChart">
+        <div class="chart-head">
+          <h3>Flow Comparison</h3>
+          <div class="chart-toggle">
+            <button
+              type="button"
+              [class.active]="flowMode === 'profit'"
+              (click)="setFlowMode('profit')"
+            >
+              Profit
+            </button>
+            <button
+              type="button"
+              [class.active]="flowMode === 'cash'"
+              (click)="setFlowMode('cash')"
+            >
+              Cash received
+            </button>
+          </div>
+        </div>
+        <p class="chart-meta">
+          Mode:
+          {{ flowMode === 'profit' ? 'Profit' : 'Cash received' }} ·
+          {{ profitMode | titlecase }}
+        </p>
+        <ng-container *ngIf="hasFlowData; else noFlowChart">
           <div class="chart-canvas">
-            <canvas #netCashChartCanvas></canvas>
+            <canvas #flowChartCanvas></canvas>
           </div>
         </ng-container>
       </article>
@@ -180,11 +256,11 @@
         </ng-container>
       </article>
     </section>
-    <ng-template #noSalesChart>
-      <p class="placeholder">Not enough history to draw this chart yet.</p>
+    <ng-template #noProfitChart>
+      <p class="placeholder">Not enough profit history to draw this chart yet.</p>
     </ng-template>
-    <ng-template #noNetCashChart>
-      <p class="placeholder">Net cash data will appear once entries exist.</p>
+    <ng-template #noFlowChart>
+      <p class="placeholder">No data yet for the selected flow view.</p>
     </ng-template>
     <ng-template #noCashboxChart>
       <p class="placeholder">Cashbox balances unavailable.</p>

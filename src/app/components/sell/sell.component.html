@@ -213,6 +213,21 @@
         <p class="empty-state">No items yet. Click an item on the left to add it.</p>
       </ng-template>
 
+      <label class="form-field">
+        <span>Customer name</span>
+        <input
+          type="text"
+          [(ngModel)]="customerName"
+          list="customer-options"
+          placeholder="Walk-in"
+          maxlength="191"
+        />
+        <datalist id="customer-options">
+          <option *ngFor="let customer of customers" [value]="customer.name">
+          </option>
+        </datalist>
+      </label>
+
       <div class="cart-summary">
         <div class="summary-line">
           Subtotal <span>{{ subtotal() | number : '1.2-2' }}</span>

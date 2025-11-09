@@ -7,6 +7,7 @@ import {
   Supplier,
   CreateRestockDto,
   CreateRestockLine,
+  NewItemPayload,
   CashboxCode,
   PayMethod,
 } from '../../services/api.service';
@@ -321,28 +322,77 @@ export class StockInComponent implements OnInit {
       (s) => (s.name || '').toLowerCase() === supplierName.toLowerCase(),
     );
 
-    const items: CreateRestockLine[] = this.lines.map((l) => {
+    const items: CreateRestockLine[] = [];
+    for (const l of this.lines) {
+      const unitCost =
+        (l as any).unitCost != null
+          ? +Number((l as any).unitCost).toFixed(2)
+          : undefined;
+
+      const hasExistingItem = l.itemId != null && l.itemId > 0;
+      if (hasExistingItem) {
+        if (this.isEach(l)) {
+          items.push({
+            itemId: l.itemId!,
+            mode: 'EACH',
+            quantity: Math.max(1, Math.floor(Number(l.quantity || 1))),
+            unitCost,
+          });
+        } else {
+          items.push({
+            itemId: l.itemId!,
+            mode: 'METER',
+            newRolls: (l as LineUiMeter).newRolls.map((n) =>
+              +Number(n).toFixed(3),
+            ),
+            unitCost,
+          });
+        }
+        continue;
+      }
+
+      const tempItem = l.item;
+      if (!tempItem) {
+        alert('Each line must include an existing item or new item details.');
+        return;
+      }
+      const name = tempItem.name?.trim() ?? '';
+      if (!name) {
+        alert('New items require a name.');
+        return;
+      }
+      const newItem: NewItemPayload = {
+        name,
+      };
+      if (tempItem.sku != null) newItem.sku = tempItem.sku;
+      if (tempItem.category != null) newItem.category = tempItem.category;
+      if (tempItem.stockUnit != null) newItem.stockUnit = tempItem.stockUnit;
+      if (tempItem.rollLength != null) newItem.rollLength = tempItem.rollLength;
+      if (tempItem.priceRetail != null)
+        newItem.priceRetail = tempItem.priceRetail;
+      if (tempItem.priceWholesale != null)
+        newItem.priceWholesale = tempItem.priceWholesale;
+      if (tempItem.description != null)
+        newItem.description = tempItem.description;
+
       if (this.isEach(l)) {
-        return {
-          itemId: l.itemId!,
+        items.push({
+          newItem,
           mode: 'EACH',
           quantity: Math.max(1, Math.floor(Number(l.quantity || 1))),
-          unitCost:
-            (l as any).unitCost != null
-              ? +Number((l as any).unitCost).toFixed(2)
-              : undefined,
-        };
+          unitCost,
+        });
+      } else {
+        items.push({
+          newItem,
+          mode: 'METER',
+          newRolls: (l as LineUiMeter).newRolls.map((n) =>
+            +Number(n).toFixed(3),
+          ),
+          unitCost,
+        });
       }
-      return {
-        itemId: l.itemId!,
-        mode: 'METER',
-        newRolls: (l as LineUiMeter).newRolls.map((n) => +Number(n).toFixed(3)),
-        unitCost:
-          (l as any).unitCost != null
-            ? +Number((l as any).unitCost).toFixed(2)
-            : undefined,
-      };
-    });
+    }
 
     const payload: CreateRestockDto = {
       supplier: matchingSupplier?.id,

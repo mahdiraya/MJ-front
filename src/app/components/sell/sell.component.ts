@@ -9,6 +9,7 @@ import {
   PriceTier,
   PayMethod,
   CashboxCode,
+  Customer,
 } from '../../services/api.service';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
@@ -55,6 +56,8 @@ export class SellComponent implements OnInit {
   statusOverrideNote = '';
 
   cart: CartLine[] = [];
+  customerName = '';
+  customers: Customer[] = [];
   note = '';
 
   // default tier used when adding new lines (per-line can override)
@@ -68,6 +71,7 @@ export class SellComponent implements OnInit {
 
   ngOnInit() {
     this.loadItems();
+    this.loadCustomers();
   }
 
   loadItems() {
@@ -77,6 +81,27 @@ export class SellComponent implements OnInit {
         this.applyFilters();
       },
       error: (e) => console.error('Failed to load items', e),
+    });
+  }
+
+  loadCustomers() {
+    this.api.getCustomers().subscribe({
+      next: (data) => {
+        if (!Array.isArray(data)) {
+          this.customers = [];
+          return;
+        }
+        const seen = new Set<string>();
+        this.customers = data
+          .filter((c) => !!c?.name)
+          .filter((c) => {
+            const key = c.name.trim().toLowerCase();
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+      },
+      error: (e) => console.error('Failed to load customers', e),
     });
   }
 
@@ -298,6 +323,11 @@ export class SellComponent implements OnInit {
       note: this.note || undefined,
     };
 
+    const name = this.customerName.trim();
+    if (name) {
+      payload.customerName = name;
+    }
+
     const paidValue =
       this.paidNow !== '' ? +Number(this.paidNow).toFixed(2) : undefined;
     if (paidValue && paidValue > 0) {
@@ -321,8 +351,11 @@ export class SellComponent implements OnInit {
         this.cart = [];
         this.paidNow = '';
         this.paymentNote = '';
+        this.customerName = '';
         this.statusOverride = '';
         this.statusOverrideNote = '';
+        this.rememberCustomerName(payload.customerName);
+        this.loadCustomers();
         this.router.navigate(['/receipt', tx.id]);
       },
       error: (err) => {
@@ -360,5 +393,25 @@ export class SellComponent implements OnInit {
 
     line.lengthMeters = +(current + allowedToAdd).toFixed(3);
     return true;
+  }
+
+  private rememberCustomerName(rawName?: string | null) {
+    const name = (rawName ?? '').toString().trim();
+    if (!name) return;
+    const exists = this.customers.some(
+      (c) => c.name.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (!exists) {
+      this.customers = [
+        ...this.customers,
+        {
+          id: Date.now(),
+          name,
+          customer_type: 'regular',
+          contact_info: null,
+          notes: null,
+        },
+      ];
+    }
   }
 }

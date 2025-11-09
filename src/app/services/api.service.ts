@@ -40,12 +40,43 @@ export interface StatsOverview {
     last7Days: number;
     daily: Array<{ date: string; total: number }>;
   };
-  netCashDaily: Array<{ date: string; total: number }>;
+  profitSeries: {
+    weekly: Array<{ date: string; total: number }>;
+    monthly: Array<{ date: string; total: number }>;
+    yearly: Array<{ period: string; total: number }>;
+  };
+  cashReceivedSeries: {
+    weekly: Array<{ date: string; total: number }>;
+    monthly: Array<{ date: string; total: number }>;
+    yearly: Array<{ period: string; total: number }>;
+  };
   cashboxTotals: {
     totalIn: number;
     totalOut: number;
     balance: number;
   };
+  monthly: {
+    sales: number;
+    collected: number;
+    purchases: number;
+    net: number;
+  };
+}
+
+export interface Customer {
+  id: number;
+  name: string;
+  customer_type: 'regular' | 'special';
+  contact_info?: string | null;
+  notes?: string | null;
+}
+
+export interface CustomerSalesSummary {
+  id: number;
+  name: string;
+  receiptCount: number;
+  totalSpent: number;
+  lastPurchase: string | null;
 }
 
 export interface Supplier {
@@ -357,6 +388,7 @@ export type TxLine = TxLineEach | TxLineMeter;
 
 export interface CreateTransactionDto {
   customer?: number | null;
+  customerName?: string | null;
   receipt_type: ReceiptType;
   items: TxLine[];
   note?: string;
@@ -542,8 +574,26 @@ export class ApiService {
     return this.http.get<any[]>(`${this.BASE_URL}/users`);
   }
 
-  getCustomers(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.BASE_URL}/customers`);
+  getCustomers(): Observable<Customer[]> {
+    return this.http.get<Customer[]>(`${this.BASE_URL}/customers`);
+  }
+
+  getCustomer(id: number): Observable<Customer> {
+    return this.http.get<Customer>(`${this.BASE_URL}/customers/${id}`);
+  }
+
+  getCustomersWithSales(): Observable<CustomerSalesSummary[]> {
+    return this.http.get<CustomerSalesSummary[]>(
+      `${this.BASE_URL}/customers/with-sales`
+    );
+  }
+
+  getCustomerReceipts(
+    customerId: number
+  ): Observable<TransactionMovementRow[]> {
+    return this.http.get<TransactionMovementRow[]>(
+      `${this.BASE_URL}/customers/${customerId}/receipts`
+    );
   }
 
   /* ----- Transactions ----- */
@@ -696,4 +746,3 @@ export class ApiService {
     );
   }
 }
-

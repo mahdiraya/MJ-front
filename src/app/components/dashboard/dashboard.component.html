@@ -222,23 +222,23 @@
           <div class="chart-toggle">
             <button
               type="button"
-              [class.active]="flowMode === 'profit'"
-              (click)="setFlowMode('profit')"
-            >
-              Profit
-            </button>
-            <button
-              type="button"
               [class.active]="flowMode === 'cash'"
               (click)="setFlowMode('cash')"
             >
-              Cash received
+              Cash flow
+            </button>
+            <button
+              type="button"
+              [class.active]="flowMode === 'booked'"
+              (click)="setFlowMode('booked')"
+            >
+              Booked flow
             </button>
           </div>
         </div>
         <p class="chart-meta">
           Mode:
-          {{ flowMode === 'profit' ? 'Profit' : 'Cash received' }} ·
+          {{ flowMode === 'cash' ? 'Cash flow' : 'Booked flow' }} ·
           {{ profitMode | titlecase }}
         </p>
         <ng-container *ngIf="hasFlowData; else noFlowChart">

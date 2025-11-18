@@ -38,23 +38,48 @@
             <th class="right">Total</th>
           </tr>
         </thead>
-        <tbody>
-          <tr *ngFor="let it of tx.transactionItems">
-            <td class="left">
-              {{ it.item?.name || "#" + it.item?.id }}
-              <small *ngIf="it.mode === 'METER' && it.roll?.id">
-                • Roll #{{ it.roll.id }}</small
-              >
-            </td>
-            <td class="center">
-              <ng-container *ngIf="it.mode === 'METER'; else eachQty">
-                {{ it.length_m }} m
-              </ng-container>
-              <ng-template #eachQty>{{ it.quantity }}</ng-template>
-            </td>
-            <td class="right">{{ it.price_each | number : "1.2-2" }}</td>
-            <td class="right">{{ lineTotal(it) | number : "1.2-2" }}</td>
-          </tr>
+                <tbody>
+          <ng-container *ngFor="let it of tx.transactionItems">
+            <tr>
+              <td class="left">
+                {{ it.item?.name || "#" + it.item?.id }}
+                <small *ngIf="it.mode === 'METER' && it.roll?.id">
+                  ??? Roll #{{ it.roll.id }}</small
+                >
+              </td>
+              <td class="center">
+                <ng-container *ngIf="it.mode === 'METER'; else eachQty">
+                  {{ it.length_m }} m
+                </ng-container>
+                <ng-template #eachQty>{{ it.quantity }}</ng-template>
+              </td>
+              <td class="right">{{ it.price_each | number : "1.2-2" }}</td>
+              <td class="right">{{ lineTotal(it) | number : "1.2-2" }}</td>
+            </tr>
+            <tr class="unit-row" *ngIf="it.inventoryUnitLinks?.length">
+              <td colspan="4">
+                <div class="unit-list">
+                  <div
+                    class="unit-pill"
+                    *ngFor="let link of it.inventoryUnitLinks"
+                    role="button"
+                    tabindex="0"
+                    (click)="toggleUnit(link)"
+                    (keydown.enter)="toggleUnit(link)"
+                    (keydown.space)="toggleUnit(link)"
+                  >
+                    <div class="unit-pill-main">
+                      <strong>{{ unitLabel(link) }}</strong>
+                      <span class="hint" *ngIf="unitHidden(link)">Tap to reveal</span>
+                    </div>
+                    <div class="unit-pill-badge" *ngIf="unitReturnBadge(link)">
+                      {{ unitReturnBadge(link) }}
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
         </tbody>
       </table>
 
@@ -99,6 +124,14 @@
         <div class="small" *ngIf="tx.receipt_type">
           Type: {{ tx.receipt_type }}
         </div>
+        <div class="small" *ngIf="tx.lastEditAt || tx.lastEditNote">
+          Last edit:
+          <ng-container *ngIf="tx.lastEditUser">
+            {{ tx.lastEditUser?.name || tx.lastEditUser?.username || ('User #' + tx.lastEditUser?.id) }}
+          </ng-container>
+          <ng-container *ngIf="tx.lastEditAt">on {{ tx.lastEditAt | date : 'short' }}</ng-container>
+          <ng-container *ngIf="tx.lastEditNote">— "{{ tx.lastEditNote }}"</ng-container>
+        </div>
       </div>
 
       <footer class="foot">
@@ -117,6 +150,9 @@
 
   <div class="actions no-print" *ngIf="tx">
     <button (click)="print()">Print</button>
+    <button (click)="editReceipt()">Edit</button>
     <button (click)="back()">Back</button>
   </div>
 </div>
+
+

@@ -126,6 +126,19 @@
   gap: 14px;
 }
 
+.serials-section {
+  margin-top: 8px;
+}
+
+.checkbox-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
 .form-hint {
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -192,6 +205,69 @@
   flex: 1;
 }
 
+.barcode-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(640px, 94vw);
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 28px;
+  display: grid;
+  gap: 16px;
+  z-index: 51;
+}
+
+.barcode-modal__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.current-unit-card {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: rgba(248, 250, 252, 0.9);
+}
+
+.queue-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+.barcode-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.barcode-actions .btn {
+  min-width: 120px;
+}
+
+.success {
+  color: #15803d;
+  margin: 0;
+}
+
+.error {
+  color: #b91c1c;
+  margin: 0;
+}
+
 @media (max-width: 768px) {
   .item-form,
   .modal {
@@ -202,4 +278,83 @@
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+.units-row td {
+  background: rgba(248, 250, 252, 0.7);
+  padding: 16px;
+}
+
+.units-panel {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background: white;
+  box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+.units-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.unit-head-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.units-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.units-table th,
+.units-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.units-table .mono {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.units-table .mono.placeholder {
+  color: var(--text-muted);
+}
+
+.unit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.status-pill.sold {
+  background: rgba(248, 113, 113, 0.2);
+  color: #b91c1c;
+}
+
+.status-pill.available {
+  background: rgba(34, 197, 94, 0.2);
+  color: #15803d;
+}
+
+.status-pill.defective {
+  background: rgba(251, 191, 36, 0.2);
+  color: #92400e;
 }

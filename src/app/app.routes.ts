@@ -72,6 +72,13 @@ export const routes: Routes = [
           ).then((m) => m.ReceiptsHistoryComponent),
       },
       {
+        path: 'returns',
+        loadComponent: () =>
+          import('./components/returns/returns.component').then(
+            (m) => m.ReturnsComponent
+          ),
+      },
+      {
         path: 'stock-in', // create a new restock (goods receipt)
         loadComponent: () =>
           import('./components/stock-in/stock-in.component').then(

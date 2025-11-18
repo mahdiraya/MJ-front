@@ -1,0 +1,235 @@
+<section class="page-header">
+  <div>
+    <h1>Returned Items</h1>
+    <p>Every serialised unit that came back to the counter lives here until you decide its fate.</p>
+  </div>
+  <button class="btn btn-primary" type="button" (click)="refresh()" [disabled]="loading">
+    {{ loading ? 'Refreshing…' : 'Refresh' }}
+  </button>
+</section>
+
+<section class="summary-cards" aria-label="Return statistics">
+  <article class="summary-card">
+    <span class="label">Pending returns</span>
+    <span class="value">{{ pendingCount }}</span>
+  </article>
+  <article class="summary-card">
+    <span class="label">Total records</span>
+    <span class="value">{{ returns.length }}</span>
+  </article>
+</section>
+
+<section class="filters" aria-label="Filters">
+  <label>
+    <span>Status</span>
+    <select [(ngModel)]="statusFilter" (ngModelChange)="onFiltersChanged()">
+      <option value="all">All</option>
+      <option value="pending">Pending</option>
+      <option value="restocked">Restocked</option>
+      <option value="trashed">Trashed</option>
+      <option value="returned_to_supplier">Returned to supplier</option>
+    </select>
+  </label>
+
+  <label>
+    <span>Requested outcome</span>
+    <select [(ngModel)]="outcomeFilter" (ngModelChange)="onFiltersChanged()">
+      <option value="all">All</option>
+      <option value="restock">Restock</option>
+      <option value="defective">Defective</option>
+    </select>
+  </label>
+
+  <label class="search">
+    <span>Search</span>
+    <input
+      type="search"
+      placeholder="Item, SKU, barcode or record #"
+      [(ngModel)]="searchTerm"
+      (ngModelChange)="onFiltersChanged()"
+    />
+  </label>
+</section>
+
+<section *ngIf="error" class="alert alert-error" role="alert">
+  {{ error }}
+</section>
+
+<section *ngIf="infoMessage" class="alert alert-success" role="status">
+  <span>{{ infoMessage }}</span>
+  <button type="button" class="link" (click)="infoMessage = null" aria-label="Dismiss message">×</button>
+</section>
+
+<section *ngIf="loading" class="card state-card">
+  <p>Loading returns…</p>
+</section>
+
+<section *ngIf="!loading && filtered.length === 0" class="card state-card">
+  <p>No returns match your filters.</p>
+  <button class="btn btn-ghost" type="button" (click)="statusFilter = 'all'; outcomeFilter = 'all'; searchTerm = ''; onFiltersChanged()">
+    Clear filters
+  </button>
+</section>
+
+<div class="table-wrapper" *ngIf="!loading && filtered.length > 0">
+  <table class="returns-table">
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Request</th>
+        <th>Status</th>
+        <th>Timeline</th>
+        <th>Notes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let record of filtered">
+        <td>
+          <div class="item-name">{{ record.inventoryUnit.item?.name || 'Unknown item' }}</div>
+          <div class="item-meta">
+            <span *ngIf="record.inventoryUnit.item?.sku">SKU: {{ record.inventoryUnit.item?.sku }}</span>
+            <span>Barcode: {{ record.inventoryUnit.barcode || 'Auto' }}</span>
+            <span>#{{ record.id }}</span>
+            <span *ngIf="record.transaction">
+              Receipt #{{ record.transaction.id }}
+            </span>
+          </div>
+        </td>
+        <td>
+          <span class="chip" [class.restock]="record.requestedOutcome === 'restock'" [class.defective]="record.requestedOutcome === 'defective'">
+            {{ requestedOutcomeLabel(record.requestedOutcome) }}
+          </span>
+        </td>
+        <td>
+          <span [class]="statusClass(record.status)">
+            {{ statusLabel(record.status) }}
+          </span>
+        </td>
+        <td>
+          <div>Received: {{ formatDate(record.createdAt) }}</div>
+          <div *ngIf="record.resolvedAt">Resolved: {{ formatDate(record.resolvedAt) }}</div>
+        </td>
+        <td>
+          <div *ngIf="record.note">
+            <span class="note-label">Customer note</span>
+            <p>{{ record.note }}</p>
+          </div>
+          <div *ngIf="record.supplier">
+            <span class="note-label">Supplier</span>
+            <p>{{ record.supplier.name }}</p>
+          </div>
+          <div *ngIf="record.supplierNote">
+            <span class="note-label">Supplier note</span>
+            <p>{{ record.supplierNote }}</p>
+          </div>
+        </td>
+        <td>
+          <div class="actions" *ngIf="record.status === 'pending'; else resolvedActions">
+            <button class="btn btn-ghost" type="button" (click)="openResolve(record, 'restock')">
+              Restock
+            </button>
+            <button class="btn btn-ghost" type="button" (click)="openResolve(record, 'trash')">
+              Trash
+            </button>
+            <button class="btn btn-ghost" type="button" (click)="openResolve(record, 'returnToSupplier')">
+              Return to supplier
+            </button>
+          </div>
+          <ng-template #resolvedActions>
+            <div class="resolved-tag">Closed</div>
+          </ng-template>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<section
+  class="resolve-panel"
+  *ngIf="resolving as form"
+  aria-label="Resolve return dialog"
+>
+  <div class="backdrop" (click)="cancelResolve()"></div>
+  <div class="panel">
+    <header>
+      <h2>
+        {{ requestedOutcomeLabel(form.record.requestedOutcome) }} ·
+        {{ form.record.inventoryUnit.item?.name || 'Unit' }}
+      </h2>
+      <p>
+        Action:
+        <strong>
+          {{
+            form.action === 'returnToSupplier'
+              ? 'Return to supplier'
+              : form.action === 'trash'
+              ? 'Trash / scrap'
+              : 'Restock shelves'
+          }}
+        </strong>
+      </p>
+    </header>
+
+    <div class="panel-body">
+      <label>
+        <span>Internal note</span>
+        <textarea
+          rows="3"
+          placeholder="OPTIONAL · Add context for this decision"
+          [(ngModel)]="form.note"
+        ></textarea>
+      </label>
+
+      <div *ngIf="form.action === 'returnToSupplier'" class="supplier-fields">
+        <label>
+          <span>Supplier</span>
+          <select
+            [(ngModel)]="form.supplierId"
+            [disabled]="suppliersLoading"
+          >
+            <option [ngValue]="null">Select supplier</option>
+            <option *ngFor="let supplier of suppliers" [ngValue]="supplier.id">
+              {{ supplier.name }}
+            </option>
+          </select>
+        </label>
+        <label>
+          <span>Supplier note</span>
+          <textarea
+            rows="2"
+            placeholder="Details that will be shared with the supplier"
+            [(ngModel)]="form.supplierNote"
+          ></textarea>
+        </label>
+        <p class="hint" *ngIf="suppliersLoading">Loading suppliers…</p>
+      </div>
+
+      <p class="alert alert-error compact" *ngIf="resolveError">
+        {{ resolveError }}
+      </p>
+    </div>
+
+    <footer>
+      <button
+        class="btn btn-primary"
+        type="button"
+        (click)="confirmResolve()"
+        [disabled]="
+          resolvingBusy ||
+          (form.action === 'returnToSupplier' && !form.supplierId)
+        "
+      >
+        {{ resolvingBusy ? 'Saving…' : 'Confirm action' }}
+      </button>
+      <button
+        class="btn btn-ghost"
+        type="button"
+        (click)="cancelResolve()"
+        [disabled]="resolvingBusy"
+      >
+        Cancel
+      </button>
+    </footer>
+  </div>
+</section>

@@ -134,6 +134,25 @@
                 [ngModel]="getQty(l)"
                 (ngModelChange)="onQtyChange(l, $event)"
               />
+              <label class="serial-auto">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="l.autoSerial"
+                  (change)="onAutoSerialToggle(l, $event)"
+                />
+                Auto-generate serials
+              </label>
+              <textarea
+                rows="3"
+                class="serial-input"
+                placeholder="Scan/paste serials - one per line"
+                [ngModel]="getSerialInput(l)"
+                (ngModelChange)="onSerialInput(l, $event)"
+                [disabled]="l.autoSerial"
+              ></textarea>
+              <small class="hint" *ngIf="!l.autoSerial">
+                Scanned {{ serialCount(l) }} / {{ getQty(l) }} serials
+              </small>
             </ng-container>
 
             <ng-template #meterTpl>

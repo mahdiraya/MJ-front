@@ -7,6 +7,9 @@
       </p>
     </div>
     <div class="header-actions">
+      <button class="btn btn-ghost" type="button" (click)="openBarcodeModal()">
+        Barcode Backfill
+      </button>
       <button class="btn btn-primary" type="button" (click)="openAdd()">
         Add Item
       </button>
@@ -53,8 +56,8 @@
         </label>
 
         <label class="form-field">
-          <span>SKU</span>
-          <input [(ngModel)]="itemForm.sku" name="sku" placeholder="SKU" />
+          <span>Model / SKU</span>
+          <input [(ngModel)]="itemForm.sku" name="sku" placeholder="Model number" />
         </label>
 
         <label class="form-field">
@@ -89,6 +92,35 @@
             required
           />
         </label>
+      </div>
+
+      <div
+        class="serials-section"
+        *ngIf="!itemForm.id && itemForm.stockUnit !== 'm'"
+      >
+        <label class="checkbox-inline">
+          <input
+            type="checkbox"
+            [(ngModel)]="autoSerialInitial"
+            (change)="onAutoSerialInitialToggle()"
+          />
+          Auto-generate serial numbers
+        </label>
+        <label class="form-field" *ngIf="!autoSerialInitial">
+          <span>Initial serial numbers</span>
+          <textarea
+            rows="4"
+            [(ngModel)]="serialInput"
+            name="serialInput"
+            placeholder="Scan or type barcodes, one per line"
+          ></textarea>
+          <small class="hint">
+            Provide one serial per piece; stock will match the number entered.
+          </small>
+        </label>
+        <small class="hint" *ngIf="autoSerialInitial">
+          Serial numbers will be generated automatically for {{ itemForm.stock || 0 }} pieces.
+        </small>
       </div>
 
       <div class="meter-section" *ngIf="itemForm.stockUnit === 'm'">
@@ -211,7 +243,8 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let item of pagedItems">
+        <ng-container *ngFor="let item of pagedItems">
+        <tr>
           <td>{{ item.name }}</td>
           <td>{{ item.sku }}</td>
           <td>{{ item.category }}</td>
@@ -228,6 +261,19 @@
           </td>
           <td>{{ item.description }}</td>
           <td class="actions">
+            <button
+              class="icon-btn"
+              title="Inventory units"
+              aria-label="Inventory units"
+              (click)="toggleUnits(item)"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"
+                />
+              </svg>
+              <span class="sr-only">Inventory</span>
+            </button>
             <button
               class="icon-btn"
               title="Edit"
@@ -273,8 +319,93 @@
             </button>
           </td>
         </tr>
+        <tr class="units-row" *ngIf="expandedItemId === item.id">
+          <td colspan="7">
+            <div class="units-panel">
+              <header class="units-panel__head">
+                <div>
+                  <h4>Tracked units</h4>
+                  <p class="subtle">
+                    {{ unitsByItem[item.id]?.length || 0 }} total units
+                  </p>
+                </div>
+                <div class="unit-head-actions">
+                  <button class="btn btn-ghost btn-sm" type="button" (click)="openBarcodeModal(item)">
+                    Assign barcodes
+                  </button>
+                  <button class="btn btn-ghost btn-sm" type="button" (click)="fetchUnits(item.id)">
+                    Refresh
+                  </button>
+                </div>
+              </header>
+
+              <ng-container *ngIf="!unitsLoading; else unitsLoadingTpl">
+                <p class="error" *ngIf="unitsError">{{ unitsError }}</p>
+                <table class="units-table" *ngIf="unitsByItem[item.id]?.length; else noUnitsTpl">
+                  <thead>
+                    <tr>
+                      <th>Barcode</th>
+                      <th>Status</th>
+                      <th>Placeholder</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let unit of unitsByItem[item.id]">
+                      <td>
+                        <span class="mono" [class.placeholder]="unit.isPlaceholder">
+                          {{ unit.barcode || '—' }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="status-pill" [class]="unit.status">{{ unit.status }}</span>
+                      </td>
+                      <td>{{ unit.isPlaceholder ? 'Yes' : 'No' }}</td>
+                      <td class="unit-actions">
+                        <button class="btn btn-ghost btn-sm" type="button" (click)="assignBarcode(unit)">
+                          {{ unit.barcode ? 'Edit barcode' : 'Assign barcode' }}
+                        </button>
+                        <button
+                          class="btn btn-ghost btn-sm"
+                          type="button"
+                          (click)="showUnitHistory(unit)"
+                        >
+                          History
+                        </button>
+                        <button
+                          class="btn btn-ghost btn-sm"
+                          type="button"
+                          *ngIf="unit.status === 'sold'"
+                          (click)="markUnit(unit, 'restock')"
+                        >
+                          Restock
+                        </button>
+                        <button
+                          class="btn btn-ghost btn-sm danger"
+                          type="button"
+                          *ngIf="unit.status === 'sold'"
+                          (click)="markUnit(unit, 'defective')"
+                        >
+                          Defective
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ng-container>
+            </div>
+          </td>
+        </tr>
+        </ng-container>
       </tbody>
     </table>
+
+    <ng-template #unitsLoadingTpl>
+      <p class="subtle">Loading units…</p>
+    </ng-template>
+    <ng-template #noUnitsTpl>
+      <p class="subtle">No tracked units yet.</p>
+    </ng-template>
 
     <ng-template #noData>
       <p class="empty-state">No items found.</p>
@@ -374,4 +505,98 @@
       <span class="sr-only">Remove</span>
     </button>
   </div>
+</div>
+
+<div
+  class="modal-backdrop"
+  *ngIf="barcodeModalOpen"
+  (click)="closeBarcodeModal()"
+></div>
+<div class="barcode-modal" *ngIf="barcodeModalOpen" (click)="$event.stopPropagation()">
+  <header class="barcode-modal__head">
+    <div>
+      <h3>Barcode Backfill</h3>
+      <p class="subtle">Scan or auto-generate serials for existing stock.</p>
+    </div>
+    <button class="icon-btn" type="button" (click)="closeBarcodeModal()" aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.7 2.88 18.3 9.17 12 2.88 5.71 4.29 4.3 10.6 10.6l6.29-6.3z"
+        />
+      </svg>
+    </button>
+  </header>
+
+  <label class="form-field">
+    <span>Select item</span>
+    <select [(ngModel)]="barcodeItemId" (ngModelChange)="onBarcodeItemChange()">
+      <option [ngValue]="null" disabled>Select an item</option>
+      <option *ngFor="let item of items" [ngValue]="item.id">
+        {{ item.name }} ({{ item.sku || 'no sku' }})
+      </option>
+    </select>
+  </label>
+
+  <div *ngIf="barcodeLoading" class="state subtle">Loading pending units�?�</div>
+
+  <ng-container *ngIf="!barcodeLoading">
+    <div *ngIf="nextBarcodeUnit; else noPending">
+      <div class="current-unit-card">
+        <div>
+          <h4>Next unit #{{ nextBarcodeUnit.id }}</h4>
+          <p class="subtle">
+            Placeholder: {{ nextBarcodeUnit.isPlaceholder ? 'Yes' : 'No' }} �?�
+            Created:
+            {{
+              nextBarcodeUnit.createdAt
+                ? (nextBarcodeUnit.createdAt | date : 'short')
+                : 'n/a'
+            }}
+          </p>
+        </div>
+        <span class="queue-pill">
+          {{ barcodeUnits.length }} in queue
+        </span>
+      </div>
+
+      <label class="form-field">
+        <span>Scan / enter barcode</span>
+        <input
+          [(ngModel)]="barcodeInput"
+          (keyup.enter)="submitBarcode()"
+          placeholder="Focus here and scan..."
+          [disabled]="barcodeAssigning"
+          autofocus
+        />
+      </label>
+
+      <div class="barcode-actions">
+        <button class="btn btn-primary" type="button" (click)="submitBarcode()" [disabled]="barcodeAssigning">
+          Assign barcode
+        </button>
+        <button
+          class="btn btn-ghost"
+          type="button"
+          (click)="autoGenerateBarcode()"
+          [disabled]="barcodeAssigning"
+        >
+          Auto barcode
+        </button>
+        <button class="btn btn-ghost danger" type="button" (click)="skipBarcodeUnit()" [disabled]="barcodeAssigning">
+          Skip unit
+        </button>
+      </div>
+      <p class="hint">
+        Barcodes are assigned in FIFO order. Skipping sends the unit to the end of the queue.
+      </p>
+    </div>
+    <ng-template #noPending>
+      <p class="subtle">
+        All units already have barcodes for this item.
+      </p>
+    </ng-template>
+  </ng-container>
+
+  <p class="success" *ngIf="barcodeMessage">{{ barcodeMessage }}</p>
+  <p class="error" *ngIf="barcodeError">{{ barcodeError }}</p>
 </div>

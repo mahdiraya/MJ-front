@@ -19,6 +19,8 @@ type LineUiEach = {
   mode: 'EACH';
   quantity: number;
   unitCost?: number;
+  serialsText: string;
+  autoSerial: boolean;
 };
 
 type LineUiMeter = {
@@ -28,6 +30,8 @@ type LineUiMeter = {
   newRoll: string;
   newRolls: number[];
   unitCost?: number;
+  serialsText?: string;
+  autoSerial?: boolean;
 };
 
 type LineUi = LineUiEach | LineUiMeter;
@@ -213,6 +217,8 @@ export class StockInComponent implements OnInit {
       item: it,
       mode: 'EACH',
       quantity: 1,
+      serialsText: '',
+      autoSerial: false,
     });
   }
 
@@ -273,6 +279,59 @@ export class StockInComponent implements OnInit {
     const n = Math.max(0, Number(val || 0));
     (l as any).unitCost = +n.toFixed(2);
   }
+
+  getSerialInput(l: LineUi): string {
+    return this.isEach(l) ? l.serialsText || '' : '';
+  }
+  onSerialInput(l: LineUi, val: string) {
+    if (!this.isEach(l)) return;
+    l.serialsText = val;
+  }
+  onAutoSerialToggle(l: LineUi, _event?: any) {
+    if (!this.isEach(l)) return;
+    if (l.autoSerial) {
+      l.serialsText = '';
+    }
+  }
+  serialCount(l: LineUi): number {
+    if (!this.isEach(l)) return 0;
+    return this.collectSerials(l.serialsText).length;
+  }
+
+  private collectSerials(text?: string) {
+    return (text || '')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+
+  private prepareSerialPayload(
+    line: LineUiEach,
+    quantity: number,
+    label: string,
+  ): { serials?: string[]; autoSerial?: boolean } | null {
+    const serials = this.collectSerials(line.serialsText);
+    if (line.autoSerial) {
+      if (serials.length) {
+        alert(
+          `Clear the manual serials for "${label}" or disable auto-generation.`,
+        );
+        return null;
+      }
+      return { autoSerial: true };
+    }
+    if (!serials.length) {
+      alert(`Enter serial numbers for "${label}".`);
+      return null;
+    }
+    if (serials.length !== quantity) {
+      alert(
+        `Provide exactly ${quantity} serial numbers for "${label}". Currently ${serials.length}.`,
+      );
+      return null;
+    }
+    return { serials };
+  }
   // ---------------------------------------------------
 
   parseNewRolls(line: LineUiMeter) {
@@ -332,11 +391,22 @@ export class StockInComponent implements OnInit {
       const hasExistingItem = l.itemId != null && l.itemId > 0;
       if (hasExistingItem) {
         if (this.isEach(l)) {
+          const quantity = Math.max(1, Math.floor(Number(l.quantity || 1)));
+          const serialPayload = this.prepareSerialPayload(
+            l,
+            quantity,
+            l.item?.name || 'this line',
+          );
+          if (!serialPayload) {
+            return;
+          }
           items.push({
             itemId: l.itemId!,
             mode: 'EACH',
-            quantity: Math.max(1, Math.floor(Number(l.quantity || 1))),
+            quantity,
             unitCost,
+            serials: serialPayload.serials,
+            autoSerial: serialPayload.autoSerial,
           });
         } else {
           items.push({
@@ -376,11 +446,22 @@ export class StockInComponent implements OnInit {
         newItem.description = tempItem.description;
 
       if (this.isEach(l)) {
+        const quantity = Math.max(1, Math.floor(Number(l.quantity || 1)));
+        const serialPayload = this.prepareSerialPayload(
+          l,
+          quantity,
+          newItem.name,
+        );
+        if (!serialPayload) {
+          return;
+        }
         items.push({
           newItem,
           mode: 'EACH',
-          quantity: Math.max(1, Math.floor(Number(l.quantity || 1))),
+          quantity,
           unitCost,
+          serials: serialPayload.serials,
+          autoSerial: serialPayload.autoSerial,
         });
       } else {
         items.push({
@@ -524,6 +605,8 @@ export class StockInComponent implements OnInit {
         item: tempItem,
         mode: 'EACH',
         quantity: 1,
+        serialsText: '',
+        autoSerial: false,
       });
     }
 

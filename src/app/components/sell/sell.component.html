@@ -11,6 +11,17 @@
     </div>
   </header>
 
+  <section class="edit-banner" *ngIf="editingTxId">
+    <div class="edit-info">
+      <strong>Editing receipt #{{ editingTxId }}</strong>
+      <span *ngIf="editLoading">Loading receipt…</span>
+      <span class="error" *ngIf="editError">{{ editError }}</span>
+    </div>
+    <button class="btn" type="button" (click)="cancelEditMode()">
+      Cancel edit
+    </button>
+  </section>
+
   <section class="surface-card controls-card">
     <div class="controls">
       <label class="form-field search-field">
@@ -109,6 +120,22 @@
         <span class="pill" *ngIf="cart.length">{{ cart.length }} line{{ cart.length === 1 ? '' : 's' }}</span>
       </div>
 
+      <form class="scanner-row" (submit)="handleScanSubmit($event)">
+        <label class="form-field flex-1">
+          <span>Scan barcode</span>
+          <input
+            name="scanInput"
+            [(ngModel)]="scanInput"
+            placeholder="Focus here and scan..."
+            autocomplete="off"
+          />
+        </label>
+        <button class="btn" type="submit" [disabled]="scanLoading || !scanInput">
+          {{ scanLoading ? 'Adding…' : 'Add' }}
+        </button>
+      </form>
+      <p class="error" *ngIf="scanError">{{ scanError }}</p>
+
       <div class="cart-rows" *ngIf="cart.length; else emptyCart">
         <article class="cart-line" *ngFor="let line of cart; let i = index">
           <header class="cart-line__head">
@@ -146,10 +173,16 @@
                   min="1"
                   step="1"
                   [ngModel]="line.quantity"
+                  [disabled]="!!line.inventoryUnitIds?.length"
                   (ngModelChange)="updateQuantity(i, $event)"
                 />
                 <small class="hint">
-                  Available: {{ getItemStock(line.itemId) }}
+                  <ng-container *ngIf="line.inventoryUnitIds?.length; else qtyHint">
+                    Linked to {{ line.inventoryUnitIds?.length || 0 }} scanned units
+                  </ng-container>
+                  <ng-template #qtyHint>
+                    Available: {{ getItemStock(line.itemId) }}
+                  </ng-template>
                 </small>
               </label>
             </ng-container>
@@ -195,6 +228,46 @@
             </label>
           </div>
 
+          <div class="unit-return-row" *ngIf="line.inventoryUnitIds?.length">
+            <div class="unit-return-row__header">
+              <span>Units</span>
+              <span class="hint" *ngIf="editingTxId">
+                <ng-container *ngIf="returnCountForLine(line); else markHint">
+                  {{ returnCountForLine(line) }} marked for return
+                </ng-container>
+                <ng-template #markHint>Tap to mark returns</ng-template>
+              </span>
+            </div>
+            <div class="unit-chips">
+              <button
+                type="button"
+                class="unit-chip"
+                *ngFor="let unitId of line.inventoryUnitIds; let chipIdx = index"
+                [class.selected]="editingTxId && isUnitMarkedForReturn(unitId)"
+                [class.locked]="!canToggleReturn(line, chipIdx)"
+                [disabled]="!editingTxId || !canToggleReturn(line, chipIdx)"
+                (click)="toggleReturnUnit(line, unitId, chipIdx)"
+                [attr.title]="line.scannedBarcodes?.[chipIdx] || ('Unit #' + unitId)"
+              >
+                <span class="unit-chip__label">{{ unitChipLabel(line, chipIdx, unitId) }}</span>
+                <span
+                  class="unit-chip__status"
+                  *ngIf="editingTxId && isUnitMarkedForReturn(unitId)"
+                >
+                  Return
+                </span>
+                <span class="unit-chip__badge" *ngIf="unitStatusBadge(line, chipIdx)">
+                  {{ unitStatusBadge(line, chipIdx) }}
+                </span>
+              </button>
+            </div>
+            <div class="unit-return-row__actions" *ngIf="editingTxId && returnCountForLine(line)">
+              <button type="button" class="link-btn" (click)="clearReturnsForLine(line)">
+                Clear selection
+              </button>
+            </div>
+          </div>
+
           <footer class="cart-line__footer">
             <span class="cart-available">
               Available:
@@ -218,6 +291,7 @@
         <input
           type="text"
           [(ngModel)]="customerName"
+          (ngModelChange)="onCustomerNameChange($event)"
           list="customer-options"
           placeholder="Walk-in"
           maxlength="191"
@@ -226,6 +300,15 @@
           <option *ngFor="let customer of customers" [value]="customer.name">
           </option>
         </datalist>
+      </label>
+      <label class="form-field" *ngIf="customerName.trim()">
+        <span>Customer phone</span>
+        <input
+          type="tel"
+          [(ngModel)]="customerPhone"
+          placeholder="+961 70 000 000"
+          maxlength="40"
+        />
       </label>
 
       <div class="cart-summary">
@@ -283,20 +366,48 @@
             <option value="UNPAID">Marked as Unpaid</option>
           </select>
         </label>
-        <label class="form-field flex-1" *ngIf="statusOverride">
-          <span>Override note</span>
-          <input
-            type="text"
-            [(ngModel)]="statusOverrideNote"
-            placeholder="Why override?"
-          />
+      <label class="form-field flex-1" *ngIf="statusOverride">
+        <span>Override note</span>
+        <input
+          type="text"
+          [(ngModel)]="statusOverrideNote"
+          placeholder="Why override?"
+        />
+      </label>
+    </div>
+
+      <div class="edit-note" *ngIf="editingTxId">
+        <label>
+          <span>Why are you editing this receipt?</span>
+          <textarea
+            rows="2"
+            [(ngModel)]="editNote"
+            placeholder="Briefly describe the changes so we can audit later."
+          ></textarea>
         </label>
+      </div>
+      <div class="return-summary" *ngIf="editingTxId && returnSelection.size">
+        {{ returnSelection.size }}
+        unit{{ returnSelection.size === 1 ? '' : 's' }} marked for return. They will appear in
+        Returns once you update this receipt.
       </div>
 
       <div class="checkout-row">
         <input [(ngModel)]="note" placeholder="Receipt note (optional)" />
-        <button class="btn btn-primary" [disabled]="!cart.length" (click)="checkout()">
-          Checkout
+        <button
+          class="btn btn-primary"
+          [disabled]="!cart.length || saving || editLoading"
+          (click)="checkout()"
+        >
+          {{
+            editingTxId
+              ? saving
+                ? 'Updating…'
+                : 'Update receipt'
+              : saving
+              ? 'Saving…'
+              : 'Checkout'
+          }}
         </button>
       </div>
     </section>

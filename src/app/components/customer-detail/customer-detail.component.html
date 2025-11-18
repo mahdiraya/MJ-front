@@ -41,6 +41,10 @@
             {{ lastPurchase ? (lastPurchase | date : 'medium') : '--' }}
           </dd>
         </div>
+        <div>
+          <dt>Phone</dt>
+          <dd>{{ customer.contact_info || '—' }}</dd>
+        </div>
       </dl>
     </section>
 
@@ -50,7 +54,7 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>ID &amp; note</th>
               <th>Date</th>
               <th>Total</th>
               <th>Paid</th>
@@ -61,7 +65,15 @@
           </thead>
           <tbody>
             <tr *ngFor="let receipt of receipts; trackBy: trackReceipt">
-              <td>#{{ receipt.id }}</td>
+              <td>
+                <div class="id-line">#{{ receipt.id }}</div>
+                <div class="receipt-note" *ngIf="receipt.note">
+                  {{ receipt.note }}
+                </div>
+                <div class="receipt-note empty" *ngIf="!receipt.note">
+                  —
+                </div>
+              </td>
               <td>
                 {{ receipt.date ? (receipt.date | date : 'medium') : '--' }}
               </td>

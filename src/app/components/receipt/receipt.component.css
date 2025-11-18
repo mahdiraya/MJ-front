@@ -129,6 +129,8 @@ hr {
   margin-top: 12px;
   display: flex;
   gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .actions button {
@@ -141,6 +143,103 @@ hr {
 
 .actions button:hover {
   background: #f1f5f9;
+}
+
+.unit-row td {
+  padding: 0 0 6px 0;
+}
+
+.unit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: -2px;
+}
+
+.unit-pill {
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.unit-pill-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.unit-pill-main .hint {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.unit-pill-badge {
+  margin-top: 2px;
+  font-size: 10px;
+  display: inline-flex;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.18);
+  color: #9a3412;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+@media print {
+  .unit-row {
+    display: none !important;
+  }
+}
+
+.unit-pill-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-mini {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #fff;
+  cursor: pointer;
+}
+
+.btn-mini.danger {
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.btn-mini:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.return-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.return-state .success {
+  color: #15803d;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.return-state .error {
+  color: #b91c1c;
+  margin: 0;
+  font-size: 0.85rem;
 }
 
 .state {

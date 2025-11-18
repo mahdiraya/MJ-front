@@ -18,6 +18,7 @@ export class ReceiptComponent implements OnInit {
   loading = false;
   error = '';
   currencyCode: string = 'USD';
+  expandedUnitId: number | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -86,6 +87,7 @@ export class ReceiptComponent implements OnInit {
       .totals .grand { font-weight: 800; border-top: 1px dashed #cbd5e1; padding-top: 4px; }
       .foot { text-align: center; margin-top: 8px; }
       .foot p { margin: 2px 0; }
+      .unit-row { display: none !important; }
     `;
 
     const printCss = `
@@ -165,4 +167,57 @@ export class ReceiptComponent implements OnInit {
   back() {
     this.router.navigate(['/sell']);
   }
+
+  editReceipt() {
+    if (!this.tx?.id) return;
+    this.router.navigate(['/sell'], {
+      queryParams: { edit: this.tx.id },
+    });
+  }
+
+  private fullBarcode(link: any) {
+    return link?.inventoryUnit?.barcode?.toString().trim() || '';
+  }
+
+  unitLabel(link: any) {
+    const full = this.fullBarcode(link);
+    if (!full) {
+      return `Unit #${link?.inventoryUnit?.id}`;
+    }
+    const unitId = link?.inventoryUnit?.id;
+    if (this.expandedUnitId === unitId) {
+      return full;
+    }
+    return full.length > 10 ? `${full.slice(0, 10)}...` : full;
+  }
+
+  unitHidden(link: any) {
+    const code = this.fullBarcode(link);
+    const unitId = link?.inventoryUnit?.id;
+    return !!code && code.length > 10 && this.expandedUnitId !== unitId;
+  }
+
+  toggleUnit(link: any) {
+    const unitId = link?.inventoryUnit?.id;
+    if (!unitId) return;
+    this.expandedUnitId = this.expandedUnitId === unitId ? null : unitId;
+  }
+
+  unitReturnBadge(link: any) {
+    const latest = link?.inventoryUnit?.latestReturn;
+    if (!latest) return '';
+    switch (latest.status) {
+      case 'pending':
+        return 'Pending return';
+      case 'restocked':
+        return 'Restocked';
+      case 'trashed':
+        return 'Trashed';
+      case 'returned_to_supplier':
+        return 'Returned to supplier';
+      default:
+        return '';
+    }
+  }
+
 }

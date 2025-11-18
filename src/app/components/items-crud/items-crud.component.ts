@@ -1,7 +1,12 @@
 // ...imports unchanged...
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ApiService, Item } from '../../services/api.service';
+import {
+  ApiService,
+  Item,
+  InventoryUnit,
+  InventoryUnitHistory,
+} from '../../services/api.service';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 
@@ -29,6 +34,8 @@ export class ItemsCrudComponent implements OnInit {
   rollCreateLength = 0;
   rollAddCount = 0;
   rollAddLength = 0;
+  serialInput = '';
+  autoSerialInitial = false;
 
   // Photo modal state
   photoModalOpen = false;
@@ -40,6 +47,19 @@ export class ItemsCrudComponent implements OnInit {
   currentPage = 1;
   totalPages = 1;
   readonly PAGE_SIZE = PAGE_SIZE;
+  expandedItemId: number | null = null;
+  unitsByItem: Partial<Record<number, InventoryUnit[]>> = {};
+  unitsLoading = false;
+  unitsError = '';
+  // Barcode backfill modal
+  barcodeModalOpen = false;
+  barcodeItemId: number | null = null;
+  barcodeUnits: InventoryUnit[] = [];
+  barcodeLoading = false;
+  barcodeAssigning = false;
+  barcodeError = '';
+  barcodeMessage = '';
+  barcodeInput = '';
 
   // If your backend origin differs, update here or move to environments
   private readonly BACKEND_BASE = 'http://localhost:3000';
@@ -122,6 +142,8 @@ export class ItemsCrudComponent implements OnInit {
     this.itemForm = this.createEmptyForm();
     this.rollCreateCount = 0;
     this.rollCreateLength = 0;
+    this.serialInput = '';
+    this.autoSerialInitial = false;
     this.showForm = true;
   }
 
@@ -139,6 +161,8 @@ export class ItemsCrudComponent implements OnInit {
 
     this.rollAddCount = 0;
     this.rollAddLength = 0;
+    this.serialInput = '';
+    this.autoSerialInitial = false;
     this.showForm = true;
   }
 
@@ -196,11 +220,31 @@ export class ItemsCrudComponent implements OnInit {
       }
     }
 
+    if (!payload.id && payload.stockUnit !== 'm') {
+      const serials = this.collectSerials();
+      if (this.autoSerialInitial) {
+        if (serials.length) {
+          alert('Remove manual serial numbers or disable auto-generation.');
+          return null;
+        }
+        payload.autoSerial = true;
+        payload.stock = Math.max(0, Math.floor(Number(payload.stock || 0)));
+      } else {
+        if (!serials.length) {
+          alert('Enter serial numbers or enable auto-generation.');
+          return null;
+        }
+        payload.initialSerials = serials;
+        payload.stock = serials.length;
+      }
+    }
+
     return payload;
   }
 
   saveItem() {
     const payload = this.buildPayloadForSave();
+    if (!payload) return;
 
     if (payload.id) {
       this.api.updateItem(payload.id, payload).subscribe(() => {
@@ -247,6 +291,123 @@ export class ItemsCrudComponent implements OnInit {
     }
   }
 
+  toggleUnits(item: Item) {
+    if (this.expandedItemId === item.id) {
+      this.expandedItemId = null;
+      return;
+    }
+    this.expandedItemId = item.id;
+    if (!this.unitsByItem[item.id]) {
+      this.fetchUnits(item.id);
+    }
+  }
+
+  fetchUnits(itemId: number) {
+    this.unitsLoading = true;
+    this.unitsError = '';
+    this.api
+      .getInventoryUnits(itemId, { includePlaceholders: true })
+      .subscribe({
+        next: (units) => {
+          this.unitsByItem[itemId] = units || [];
+          this.unitsLoading = false;
+        },
+        error: (err) => {
+          console.error(err);
+          this.unitsError =
+            err?.error?.message || err?.message || 'Failed to load inventory units.';
+          this.unitsLoading = false;
+        },
+      });
+  }
+
+  assignBarcode(unit: InventoryUnit) {
+    const current = unit.barcode || '';
+    const value = prompt('Enter barcode (leave blank to clear):', current);
+    if (value === null) return;
+    const next = value.trim();
+    this.api.assignInventoryBarcode(unit.id, next || null).subscribe({
+      next: (updated) => this.updateUnitCache(updated),
+      error: (err) => {
+        console.error(err);
+        alert(err?.error?.message || 'Failed to update barcode.');
+      },
+    });
+  }
+
+  markUnit(unit: InventoryUnit, outcome: 'restock' | 'defective') {
+    const actionText =
+      outcome === 'restock'
+        ? 'mark this unit as returned to stock'
+        : 'mark this unit as defective';
+    if (!confirm(`Are you sure you want to ${actionText}?`)) return;
+    this.api.returnInventoryUnit(unit.id, outcome).subscribe({
+      next: () => {
+        const updatedUnit = { ...unit, status: 'returned' as const };
+        this.updateUnitCache(updatedUnit);
+        if (outcome === 'restock') {
+          this.loadItems();
+        }
+      },
+      error: (err) => {
+        console.error(err);
+        alert(err?.error?.message || 'Failed to update unit status.');
+      },
+    });
+  }
+
+  private updateUnitCache(updated: InventoryUnit) {
+    Object.keys(this.unitsByItem).forEach((key) => {
+      const list = this.unitsByItem[Number(key)];
+      if (!list) return;
+      const idx = list.findIndex((u) => u.id === updated.id);
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], ...updated };
+      }
+    });
+  }
+
+  private collectSerials(): string[] {
+    return (this.serialInput || '')
+      .split(/\r?\n/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
+
+  showUnitHistory(unit: InventoryUnit) {
+    this.api.getInventoryUnitHistory(unit.id).subscribe({
+      next: (history) => this.displayHistory(history),
+      error: (err) => {
+        console.error(err);
+        alert(err?.error?.message || 'Failed to load history.');
+      },
+    });
+  }
+
+  private displayHistory(history: InventoryUnitHistory) {
+    const parts: string[] = [];
+    parts.push(`Unit #${history.unit.id}`);
+    if (history.unit.barcode) {
+      parts.push(`Barcode: ${history.unit.barcode}`);
+    }
+    if (history.restock?.date) {
+      parts.push(`Restocked on ${new Date(history.restock.date).toLocaleString()}`);
+    }
+    if (history.sales.length) {
+      parts.push('Sales:');
+      history.sales.forEach((sale) => {
+        parts.push(
+          `• Tx ${sale.transactionId} on ${new Date(sale.transactionDate).toLocaleString()} (${
+            sale.customer?.name || 'Walk-in'
+          })`
+        );
+      });
+    } else {
+      parts.push('No sales recorded for this unit yet.');
+    }
+    alert(parts.join('\n'));
+  }
+
   cancelForm() {
     this.showForm = false;
     this.itemForm = this.createEmptyForm();
@@ -254,6 +415,14 @@ export class ItemsCrudComponent implements OnInit {
     this.rollCreateLength = 0;
     this.rollAddCount = 0;
     this.rollAddLength = 0;
+    this.serialInput = '';
+    this.autoSerialInitial = false;
+  }
+
+  onAutoSerialInitialToggle() {
+    if (this.autoSerialInitial) {
+      this.serialInput = '';
+    }
   }
 
   createEmptyForm() {
@@ -346,6 +515,133 @@ export class ItemsCrudComponent implements OnInit {
         console.error(err);
         alert(err?.error?.message || 'Failed to remove photo');
         this.uploading = false;
+      },
+    });
+  }
+
+  // ===== Barcode backfill modal logic =====
+  get nextBarcodeUnit(): InventoryUnit | null {
+    return this.barcodeUnits.length ? this.barcodeUnits[0] : null;
+  }
+
+  openBarcodeModal(item?: Item) {
+    this.barcodeModalOpen = true;
+    this.barcodeError = '';
+    this.barcodeMessage = '';
+    this.barcodeInput = '';
+    this.barcodeUnits = [];
+    this.barcodeItemId = item?.id ?? this.items[0]?.id ?? null;
+    if (this.barcodeItemId) {
+      this.loadBarcodeUnits(this.barcodeItemId);
+    }
+  }
+
+  closeBarcodeModal() {
+    if (this.barcodeAssigning) return;
+    this.barcodeModalOpen = false;
+    this.barcodeItemId = null;
+    this.barcodeUnits = [];
+    this.barcodeError = '';
+    this.barcodeMessage = '';
+    this.barcodeInput = '';
+  }
+
+  onBarcodeItemChange() {
+    if (!this.barcodeItemId) {
+      this.barcodeUnits = [];
+      return;
+    }
+    this.loadBarcodeUnits(this.barcodeItemId);
+  }
+
+  private loadBarcodeUnits(itemId: number) {
+    this.barcodeLoading = true;
+    this.barcodeError = '';
+    this.barcodeMessage = '';
+    this.api
+      .getInventoryUnits(itemId, {
+        includePlaceholders: true,
+        status: 'available',
+        limit: 200,
+      })
+      .subscribe({
+        next: (units) => {
+          const pending =
+            units?.filter((unit) => !unit.barcode || unit.isPlaceholder) ?? [];
+          pending.sort((a, b) => {
+            const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return aTime - bTime;
+          });
+          this.barcodeUnits = pending;
+          this.barcodeLoading = false;
+          if (!pending.length) {
+            this.barcodeMessage = 'This item has no pending units without barcodes.';
+          }
+        },
+        error: (err) => {
+          console.error(err);
+          this.barcodeLoading = false;
+          this.barcodeError =
+            err?.error?.message || err?.message || 'Failed to load inventory units.';
+        },
+      });
+  }
+
+  submitBarcode() {
+    const code = this.barcodeInput.trim();
+    if (!code || this.barcodeAssigning) return;
+    this.assignBarcodeToNext(code);
+  }
+
+  autoGenerateBarcode() {
+    if (this.barcodeAssigning || !this.barcodeItemId) return;
+    const item = this.items.find((it) => it.id === this.barcodeItemId);
+    const base =
+      (item?.sku || item?.name || 'ITEM').replace(/[^A-Za-z0-9]/g, '').toUpperCase() ||
+      'ITEM';
+    const suffix = Date.now().toString().slice(-6);
+    const random = Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, '0');
+    const code = `${base}-${suffix}-${random}`;
+    this.assignBarcodeToNext(code);
+  }
+
+  skipBarcodeUnit() {
+    if (this.barcodeUnits.length > 1) {
+      const first = this.barcodeUnits.shift();
+      if (first) {
+        this.barcodeUnits = [...this.barcodeUnits, first];
+      }
+    }
+    this.barcodeInput = '';
+    this.barcodeMessage = '';
+  }
+
+  private assignBarcodeToNext(code: string) {
+    const target = this.nextBarcodeUnit;
+    if (!target) return;
+    this.barcodeAssigning = true;
+    this.barcodeError = '';
+    this.barcodeMessage = '';
+    this.api.assignInventoryBarcode(target.id, code).subscribe({
+      next: () => {
+        this.barcodeAssigning = false;
+        this.barcodeInput = '';
+        this.barcodeUnits = this.barcodeUnits.slice(1);
+        this.barcodeMessage = `Assigned ${code} to unit #${target.id}.`;
+        if (!this.barcodeUnits.length && this.barcodeItemId) {
+          this.loadBarcodeUnits(this.barcodeItemId);
+        }
+      },
+      error: (err) => {
+        console.error(err);
+        this.barcodeAssigning = false;
+        this.barcodeError =
+          err?.error?.message ||
+          err?.message ||
+          'Failed to assign barcode. Please try again.';
       },
     });
   }

@@ -50,6 +50,16 @@ export interface StatsOverview {
     monthly: Array<{ date: string; total: number }>;
     yearly: Array<{ period: string; total: number }>;
   };
+  cashFlowSeries: {
+    weekly: Array<{ date: string; in: number; out: number }>;
+    monthly: Array<{ date: string; in: number; out: number }>;
+    yearly: Array<{ period: string; in: number; out: number }>;
+  };
+  bookedFlowSeries: {
+    weekly: Array<{ date: string; in: number; out: number }>;
+    monthly: Array<{ date: string; in: number; out: number }>;
+    yearly: Array<{ period: string; in: number; out: number }>;
+  };
   cashboxTotals: {
     totalIn: number;
     totalOut: number;
@@ -174,6 +184,7 @@ export interface TransactionMovementRow {
   status: 'PAID' | 'PARTIAL' | 'UNPAID';
   cashboxes: string[];
   user: { id: number; name?: string | null; username?: string | null } | null;
+  note?: string | null;
 }
 
 export interface RestockMovementsParams {
@@ -246,6 +257,76 @@ export interface CreateCashboxManualEntryPayload {
   note?: string;
   occurredAt?: string;
 }
+
+export interface InventoryUnit {
+  id: number;
+  barcode: string | null;
+  isPlaceholder: boolean;
+  status: 'available' | 'reserved' | 'sold' | 'returned' | 'defective';
+  costEach?: number | null;
+  item?: Item;
+  restockItem?: { id: number };
+  roll?: { id: number; length_m?: number | null };
+  createdAt?: string;
+  updatedAt?: string;
+  latestReturn?: {
+    id: number;
+    status: 'pending' | 'restocked' | 'trashed' | 'returned_to_supplier';
+    requestedOutcome: 'restock' | 'defective';
+    note?: string | null;
+    createdAt?: string;
+    resolvedAt?: string | null;
+  } | null;
+}
+
+export interface InventoryUnitHistory {
+  unit: InventoryUnit;
+  restock: Restock | null;
+  sales: Array<{
+    transactionId: number;
+    transactionDate: string;
+    customer: Customer | null;
+    quantity: number;
+    length_m: number | null;
+    price_each: number;
+    cost_each: number | null;
+  }>;
+}
+
+export interface InventoryReturnRecord {
+  id: number;
+  status: 'pending' | 'restocked' | 'trashed' | 'returned_to_supplier';
+  requestedOutcome: 'restock' | 'defective';
+  note?: string | null;
+  createdAt: string;
+  resolvedAt?: string | null;
+  supplier?: { id: number; name: string } | null;
+  supplierNote?: string | null;
+  inventoryUnit: {
+    id: number;
+    barcode: string | null;
+    status: string;
+    item: { id: number; name: string; sku?: string | null } | null;
+  };
+  transaction?: {
+    id: number;
+    date: string;
+    lineId: number | null;
+    unitPrice: number | null;
+  } | null;
+}
+
+export type CreateInventoryReturnPayload = {
+  requestedOutcome: 'restock' | 'defective';
+  note?: string | null;
+};
+
+export type ResolveInventoryReturnPayload = {
+  action: 'restock' | 'trash' | 'returnToSupplier';
+  note?: string | null;
+  supplierId?: number | null;
+  supplierNote?: string | null;
+};
 export type NewItemPayload = {
   name: string;
   sku?: string | null;
@@ -258,13 +339,22 @@ export type NewItemPayload = {
 };
 
 export type CreateRestockLine =
-  | { itemId: number; mode: 'EACH'; quantity: number; unitCost?: number }
+  | {
+      itemId: number;
+      mode: 'EACH';
+      quantity: number;
+      unitCost?: number;
+      serials?: string[];
+      autoSerial?: boolean;
+    }
   | { itemId: number; mode: 'METER'; newRolls: number[]; unitCost?: number }
   | {
       newItem: NewItemPayload;
       mode: 'EACH';
       quantity: number;
       unitCost?: number;
+      serials?: string[];
+      autoSerial?: boolean;
     }
   | {
       newItem: NewItemPayload;
@@ -371,6 +461,8 @@ export type TxLineEach = {
   priceTier?: PriceTier;
   /** Optional unitPrice override (per piece). If provided, server will store it in price_each. */
   unitPrice?: number;
+  /** For serialised inventory: explicit unit ids sold on this line */
+  inventoryUnitIds?: number[];
 };
 
 export type TxLineMeter = {
@@ -389,6 +481,7 @@ export type TxLine = TxLineEach | TxLineMeter;
 export interface CreateTransactionDto {
   customer?: number | null;
   customerName?: string | null;
+  customerPhone?: string | null;
   receipt_type: ReceiptType;
   items: TxLine[];
   note?: string;
@@ -400,6 +493,10 @@ export interface CreateTransactionDto {
   statusOverride?: 'PAID' | 'PARTIAL' | 'UNPAID';
   statusOverrideNote?: string;
   payMethod?: PayMethod;
+}
+
+export interface UpdateTransactionPayload extends CreateTransactionDto {
+  editNote: string;
 }
 
 export interface CreateRestockDto {
@@ -432,8 +529,12 @@ export interface TransactionItem {
   quantity: number;
   length_m?: number | null;
   price_each: number;
-  item: { id: number; name: string; price: number; stockUnit: StockUnit };
-  roll?: { id: number } | null;
+  cost_each?: number | null;
+  item: { id: number; name: string; stockUnit: StockUnit; sku?: string | null };
+  roll?: { id: number; label?: string | null } | null;
+  inventoryUnitLinks?: Array<{
+    inventoryUnit: Pick<InventoryUnit, 'id' | 'barcode' | 'status'>;
+  }>;
 }
 
 export interface Transaction {
@@ -441,8 +542,9 @@ export interface Transaction {
   date: string;
   total: number;
   receipt_type: ReceiptType;
+  note?: string | null;
   user: { id: number; name?: string };
-  customer?: { id: number; name?: string } | null;
+  customer?: { id: number; name?: string; contact_info?: string | null } | null;
   transactionItems: TransactionItem[];
   paid?: number;
   status?: 'paid' | 'partial' | 'unpaid';
@@ -451,6 +553,9 @@ export interface Transaction {
   statusManualValue?: 'PAID' | 'PARTIAL' | 'UNPAID' | null;
   statusManualNote?: string | null;
   statusManualSetAt?: string | null;
+  lastEditNote?: string | null;
+  lastEditAt?: string | null;
+  lastEditUser?: { id: number; name?: string | null; username?: string | null } | null;
 }
 
 export interface RestockRollLink {
@@ -526,7 +631,12 @@ export class ApiService {
   }
 
   addItem(
-    item: Partial<Item> & { initialRolls?: number[]; stock?: number }
+    item: Partial<Item> & {
+      initialRolls?: number[];
+      initialSerials?: string[];
+      autoSerial?: boolean;
+      stock?: number;
+    }
   ): Observable<Item> {
     return this.http.post<Item>(`${this.BASE_URL}/items`, item);
   }
@@ -615,6 +725,13 @@ export class ApiService {
   ): Observable<Transaction> {
     return this.http.post<Transaction>(
       `${this.BASE_URL}/transactions`,
+      payload
+    );
+  }
+
+  updateTransaction(id: number, payload: UpdateTransactionPayload) {
+    return this.http.patch<Transaction>(
+      `${this.BASE_URL}/transactions/${id}`,
       payload
     );
   }
@@ -743,6 +860,93 @@ export class ApiService {
     return this.http.post<CashboxManualEntryRow>(
       `${this.BASE_URL}/cashboxes/manual`,
       payload
+    );
+  }
+
+  getInventoryUnits(
+    itemId: number,
+    params: { includePlaceholders?: boolean; status?: string; limit?: number } = {}
+  ) {
+    let httpParams = new HttpParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      httpParams = httpParams.set(key, String(value));
+    });
+    return this.http.get<InventoryUnit[]>(
+      `${this.BASE_URL}/inventory/items/${itemId}/units`,
+      { params: httpParams }
+    );
+  }
+
+  assignInventoryBarcode(unitId: number, barcode?: string | null) {
+    return this.http.patch<InventoryUnit>(
+      `${this.BASE_URL}/inventory/units/${unitId}/barcode`,
+      { barcode: barcode ?? null }
+    );
+  }
+
+  returnInventoryUnit(
+    unitId: number,
+    outcome: 'restock' | 'defective',
+    note?: string | null
+  ) {
+    return this.requestInventoryReturn(unitId, {
+      requestedOutcome: outcome,
+      note: note ?? undefined,
+    });
+  }
+
+  getInventoryUnitHistory(unitId: number) {
+    return this.http.get<InventoryUnitHistory>(
+      `${this.BASE_URL}/inventory/units/${unitId}/history`
+    );
+  }
+
+  lookupInventoryByBarcode(barcode: string) {
+    return this.http.get<InventoryUnit>(
+      `${this.BASE_URL}/inventory/barcodes/${encodeURIComponent(barcode)}`
+    );
+  }
+
+  listInventoryReturns() {
+    return this.http.get<InventoryReturnRecord[]>(`${this.BASE_URL}/returns`);
+  }
+
+  requestInventoryReturn(
+    unitId: number,
+    payload: CreateInventoryReturnPayload
+  ) {
+    const body: Record<string, unknown> = {
+      requestedOutcome: payload.requestedOutcome,
+    };
+    if (payload.note !== undefined) {
+      body['note'] = payload.note;
+    }
+    return this.http.post<InventoryReturnRecord>(
+      `${this.BASE_URL}/returns/${unitId}`,
+      body
+    );
+  }
+
+  resolveInventoryReturn(
+    id: number,
+    payload: ResolveInventoryReturnPayload
+  ) {
+    const body: Record<string, unknown> = {
+      action: payload.action,
+    };
+    if (payload.note !== undefined) {
+      body['note'] = payload.note;
+    }
+    if (payload.supplierId !== undefined) {
+      body['supplierId'] = payload.supplierId;
+    }
+    if (payload.supplierNote !== undefined) {
+      body['supplierNote'] = payload.supplierNote;
+    }
+    return this.http.patch<InventoryReturnRecord>(
+      `${this.BASE_URL}/returns/${id}`,
+      body
     );
   }
 }

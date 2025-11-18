@@ -73,6 +73,22 @@
   color: #b91c1c;
 }
 
+.id-line {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.receipt-note {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: normal;
+  line-height: 1.3;
+}
+
+.receipt-note.empty {
+  color: rgba(148, 163, 184, 0.8);
+}
+
 .actions {
   text-align: right;
   white-space: nowrap;

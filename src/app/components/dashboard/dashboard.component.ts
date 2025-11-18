@@ -126,7 +126,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   loading = false;
   error = '';
   stats: StatsOverview | null = null;
-  flowMode: 'profit' | 'cash' = 'profit';
+  flowMode: 'cash' | 'booked' = 'cash';
   profitMode: 'weekly' | 'monthly' | 'yearly' = 'weekly';
 
   private profitChartCanvas?: ElementRef<HTMLCanvasElement>;
@@ -213,14 +213,15 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get hasFlowData() {
-    return this.getFlowSeriesForMode().length > 0;
+    const series = this.getFlowSeriesForMode();
+    return series.some((point) => point.in !== 0 || point.out !== 0);
   }
 
   get hasCashboxData() {
     return !!this.stats?.cashboxes.length;
   }
 
-  setFlowMode(mode: 'profit' | 'cash') {
+  setFlowMode(mode: 'cash' | 'booked') {
     if (this.flowMode === mode) return;
     this.flowMode = mode;
     this.scheduleRenderCharts();
@@ -365,8 +366,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       return { type: 'bar', data: { labels: [], datasets: [] } };
     }
 
-    const isProfit = this.flowMode === 'profit';
-
+    const isCash = this.flowMode === 'cash';
     const labels = series.map((point) => {
       if (point.type === 'period') {
         return this.formatPeriodLabel(point.key);
@@ -376,15 +376,14 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       return this.formatMonthlyLabel(point.key);
     });
-    const data = series.map((point) => +point.total.toFixed(2));
 
-    const datasetLabel = isProfit
-      ? this.profitMode === 'yearly'
-        ? 'Monthly profit'
-        : 'Daily profit'
-      : this.profitMode === 'yearly'
-      ? 'Monthly cash received'
-      : 'Cash received';
+    const inflow = series.map((point) => +point.in.toFixed(2));
+    const outflow = series.map(
+      (point) => -Math.abs(+point.out.toFixed(2)),
+    );
+
+    const inLabel = isCash ? 'Cash in' : 'Booked in';
+    const outLabel = isCash ? 'Cash out' : 'Booked out';
 
     return {
       type: 'bar',
@@ -392,18 +391,18 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         labels,
         datasets: [
           {
-            label: datasetLabel,
-            data,
-            backgroundColor: data.map((value) =>
-              isProfit
-                ? value >= 0
-                  ? 'rgba(34, 197, 94, 0.75)'
-                  : 'rgba(239, 68, 68, 0.75)'
-                : 'rgba(14, 165, 233, 0.6)'
-            ),
-            borderColor: data.map((value) =>
-              isProfit ? (value >= 0 ? '#22c55e' : '#ef4444') : '#0ea5e9'
-            ),
+            label: inLabel,
+            data: inflow,
+            backgroundColor: 'rgba(34, 197, 94, 0.75)',
+            borderColor: '#22c55e',
+            borderWidth: 1,
+            borderRadius: 4,
+          },
+          {
+            label: outLabel,
+            data: outflow,
+            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+            borderColor: '#ef4444',
             borderWidth: 1,
             borderRadius: 4,
           },
@@ -413,12 +412,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
+          legend: { position: 'bottom' },
           tooltip: {
             callbacks: {
               label: (ctx) =>
-                `${isProfit ? 'Profit' : 'Cash'}: ${CURRENCY_FORMAT.format(
-                  ctx.parsed.y
+                `${ctx.dataset.label}: ${CURRENCY_FORMAT.format(
+                  Math.abs(ctx.parsed.y),
                 )}`,
             },
           },
@@ -427,7 +426,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           y: {
             beginAtZero: true,
             ticks: {
-              callback: (value) => CURRENCY_FORMAT.format(Number(value)),
+              callback: (value) => CURRENCY_FORMAT.format(Math.abs(Number(value))),
             },
           },
         },
@@ -467,31 +466,37 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private getFlowSeriesForMode(): Array<{
     key: string;
-    total: number;
+    in: number;
+    out: number;
     type: 'date' | 'period';
   }> {
     if (!this.stats) return [];
     const source =
       this.flowMode === 'cash'
-        ? this.stats.cashReceivedSeries
-        : this.stats.profitSeries;
+        ? this.stats.cashFlowSeries
+        : this.stats.bookedFlowSeries;
+    if (!source) return [];
+
     switch (this.profitMode) {
       case 'weekly':
         return source.weekly.map((point) => ({
           key: point.date,
-          total: point.total,
+          in: point.in,
+          out: point.out,
           type: 'date' as const,
         }));
       case 'monthly':
         return source.monthly.map((point) => ({
           key: point.date,
-          total: point.total,
+          in: point.in,
+          out: point.out,
           type: 'date' as const,
         }));
       case 'yearly':
         return source.yearly.map((point) => ({
           key: point.period,
-          total: point.total,
+          in: point.in,
+          out: point.out,
           type: 'period' as const,
         }));
       default:
